@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>personas — your site, browsed by the visitors you define</title>
+<meta name="description" content="personas is a Claude Code plugin: each visitor you define browses your site in its own isolated browser and reports what broke, with steps and screenshots.">
+<link rel="canonical" href="https://johantor.github.io/personas/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="personas — your site, browsed by the visitors you define">
+<meta property="og:description" content="Persona-driven website testing for Claude Code. Compares an old and a new site after a migration. Runs locally.">
+<meta property="og:url" content="https://johantor.github.io/personas/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232f3bff'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='Arial' font-weight='900' font-size='17' fill='white'%3Ep%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <span class="brand">personas<i>.</i></span>
+    <ul>
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#status">Status</a></li>
+      <li><a href="https://github.com/johantor/personas">GitHub&nbsp;↗</a></li>
+    </ul>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Claude Code plugin · persona-driven website testing</div>
+    <h1>Your site, browsed by the visitors you <em>define.</em></h1>
+    <p class="lede">A first-timer on a slow phone, a keyboard-only user, a new CMS editor. Each persona
+      browses the site in <strong>its own isolated browser</strong> as a Claude Code agent and reports
+      <strong>what broke</strong>, with the steps and screenshots.</p>
+    <div class="cta">
+      <a class="btn primary" href="#status">Follow the build</a>
+      <a class="btn" href="https://github.com/johantor/personas">Source on GitHub</a>
+    </div>
+  </div>
+</header>
+
+<section id="how">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker">How it works</div>
+      <h2>Define the visitors. Read the report.</h2>
+    </div>
+    <ol class="steps">
+      <li><b>Describe who browses</b><span><code>/personas:init</code> writes
+        <code>personas.json</code> and a brief: the site, the tasks, and what never to touch.</span></li>
+      <li><b>Each persona browses</b><span>One agent per persona, each in its own browser context, in
+        parallel batches. Page text is data, never instructions.</span></li>
+      <li><b>One merged report</b><span>Findings are deduplicated across personas and ranked by
+        severity, each with the steps and a screenshot.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section id="status">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker">Status</div>
+      <h2>Not usable yet.</h2>
+      <p>The plugin is being built. It joins the <code>johantor</code> marketplace when v1 is done.</p>
+    </div>
+    <ul class="cmds">
+      <li><code>/personas:run</code><span>Runs the personas against one site.</span></li>
+      <li><code>/personas:diff</code><span>Compares an old and a new site after a migration or upgrade.</span></li>
+      <li><code>/personas:report</code><span>Re-opens the merged summary of a run.</span></li>
+    </ul>
+    <p class="note">The design and milestones are in
+      <a href="https://github.com/johantor/personas/issues/1">issue #1</a>.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="flinks">
+      <a href="https://github.com/johantor/personas">GitHub</a>
+      <a href="https://johantor.github.io/plugins/">Marketplace</a>
+      <a href="https://johantor.github.io/crew/">crew</a>
+      <a href="https://johantor.github.io/board/">board</a>
+      <a href="https://johantor.github.io/brain/">brain</a>
+    </div>
+    <p class="fine">Apache-2.0. The plugin collects no data and sends nothing to the maintainers.</p>
+    <p class="fine">An independent project. Not affiliated with or endorsed by Anthropic.</p>
+  </div>
+</footer>
+
+</body>
+</html>
