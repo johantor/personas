@@ -51,7 +51,7 @@ action goes to `<run>/<persona-id>/steps.jsonl`. The CLI refuses:
 - Navigation to a host that is not the `--url` host or listed under `## Allowed hosts` in
   `brief.md`.
 - Requests to analytics and tag hosts, plus any listed under `## Blocked hosts`.
-- Every request except GET and HEAD, unless the persona sets `allowWrites`.
+- Form submits and every request except GET and HEAD, unless the persona sets `allowWrites`.
 
 A host in either list also matches its subdomains.
 

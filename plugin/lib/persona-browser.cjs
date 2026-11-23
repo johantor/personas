@@ -110,11 +110,6 @@ async function runClient(command, opts) {
 async function start(sock, opts) {
   need(opts, 'persona', 'persona-id', 'run', 'url');
   const config = buildConfig(opts);
-  if (await send(sock, { command: 'ping' }).then(() => true, () => false)) {
-    throw new Error(`session "${opts.session}" is already running; stop it first`);
-  }
-  if (process.platform !== 'win32') fs.rmSync(sock, { force: true }); // a socket left by a crash
-
   fs.mkdirSync(path.join(config.personaDir, 'shots'), { recursive: true });
   const log = fs.openSync(path.join(config.personaDir, 'daemon.log'), 'a');
   const child = spawn(process.execPath, [__filename, '__daemon', sock, JSON.stringify(config)], {
@@ -143,8 +138,12 @@ function buildConfig(opts) {
   const file = readJson(personaFile);
   const found = (file.personas || []).find((p) => p.id === opts['persona-id']);
   if (!found) throw new Error(`no persona "${opts['persona-id']}" in ${personaFile}`);
-  if (!/^[A-Za-z0-9._-]+$/.test(found.id)) throw new Error(`persona id "${found.id}" is not a safe folder name`);
+  // A leading dot would allow "." and "..", which put the run output outside <run>/<persona-id>.
+  if (!/^[A-Za-z0-9_-][A-Za-z0-9._-]*$/.test(found.id)) throw new Error(`persona id "${found.id}" is not a safe folder name`);
   const persona = { ...file.defaults, ...found };
+  if (persona.allowWrites !== undefined && typeof persona.allowWrites !== 'boolean') {
+    throw new Error(`allowWrites must be true or false, not ${JSON.stringify(persona.allowWrites)}`);
+  }
 
   const base = new URL(opts.url);
   if (!/^https?:$/.test(base.protocol)) throw new Error(`--url must be http or https: ${opts.url}`);
@@ -199,11 +198,26 @@ function loadPlaywright() {
   throw new Error(`Playwright is not installed. Install it: ${INSTALL_HINT}`);
 }
 
-async function runDaemon(sock, config) {
-  const s = await openSession(config).catch((err) => {
-    if (!/Executable doesn't exist/.test(err.message)) throw err;
-    throw new Error('Playwright browsers are missing. Install them: npx playwright install chromium webkit');
+// Listening is the lock on the session id: a second daemon gets EADDRINUSE. A socket nobody
+// answers on was left by a crash, so it is removed once and the listen retried.
+async function listen(server, sock) {
+  const attempt = () => new Promise((resolve, reject) => {
+    server.once('error', reject).listen(sock, () => { server.off('error', reject); resolve(); });
   });
+  try {
+    await attempt();
+  } catch (err) {
+    if (err.code !== 'EADDRINUSE') throw err;
+    if (await send(sock, { command: 'ping' }).then(() => true, () => false)) {
+      throw new Error('this session is already running; stop it first');
+    }
+    if (process.platform !== 'win32') fs.rmSync(sock, { force: true });
+    await attempt();
+  }
+}
+
+async function runDaemon(sock, config) {
+  let s = null;
   let idle;
   const touch = () => { clearTimeout(idle); idle = setTimeout(() => shutdown(s, server), IDLE_MS); };
   let queue = Promise.resolve(); // one command at a time, in arrival order
@@ -217,6 +231,7 @@ async function runDaemon(sock, config) {
       queue = queue.then(async () => {
         let reply;
         try {
+          if (!s && request.command !== 'ping') throw new Error('the session is still starting');
           reply = { ok: true, output: await handle(s, request) };
         } catch (err) {
           reply = { ok: false, error: err.message };
@@ -227,8 +242,12 @@ async function runDaemon(sock, config) {
     });
     conn.on('error', () => {}); // a client that went away must not take the session down
   });
-  await new Promise((resolve, reject) => server.once('error', reject).listen(sock, resolve));
+  await listen(server, sock);
   touch();
+  s = await openSession(config).catch((err) => {
+    if (!/Executable doesn't exist/.test(err.message)) throw err;
+    throw new Error('Playwright browsers are missing. Install them: npx playwright install chromium webkit');
+  });
   const out = await handle(s, { command: 'goto', opts: { url: config.startUrl } }).catch((err) => `start page failed: ${err.message}`);
   return [
     `started session with persona ${config.persona.id} (${s.browserName})`,
@@ -271,6 +290,7 @@ async function openSession(config) {
     s.warnings.push(`network "${persona.network}" needs chromium; not throttled in ${browserName}`);
   }
   await context.route('**/*', (route) => routeRequest(s, route));
+  if (!persona.allowWrites) await refuseFormSubmits(s);
   // A link that opens a new tab moves the visitor there, as it would a person.
   context.on('page', async (page) => {
     s.page = page;
@@ -284,6 +304,20 @@ async function openSession(config) {
   return s;
 }
 
+// A GET form passes the method check in routeRequest, so submits are stopped in the page: a
+// capture listener runs before the site's own handlers, and form.submit() fires no event.
+async function refuseFormSubmits(s) {
+  await s.context.exposeBinding('__personaBrowserSubmit', (_source, action) => {
+    s.refusals.push(`refused: submit ${action} (writes are off (allowWrites is not set))`);
+    logStep(s, 'refused', `submit ${action}`, 'writes are off (allowWrites is not set)');
+  });
+  await s.context.addInitScript(() => {
+    const refuse = (form) => window.__personaBrowserSubmit(form.action);
+    window.addEventListener('submit', (e) => { e.preventDefault(); e.stopImmediatePropagation(); refuse(e.target); }, true);
+    HTMLFormElement.prototype.submit = function submit() { refuse(this); };
+  });
+}
+
 function routeRequest(s, route) {
   const req = route.request();
   const url = new URL(req.url());
@@ -292,13 +326,18 @@ function routeRequest(s, route) {
     s.blocked.set(host, (s.blocked.get(host) || 0) + 1);
     return route.abort('blockedbyclient');
   }
-  if (req.isNavigationRequest() && !req.frame().parentFrame() && !hostMatches(host, s.config.allowedHosts)) {
+  if (req.isNavigationRequest() && isTopLevel(req) && !hostMatches(host, s.config.allowedHosts)) {
     return refuse(s, route, `${req.method()} ${url.href}`, 'host not on the allowlist');
   }
   if (!['GET', 'HEAD'].includes(req.method()) && !s.config.persona.allowWrites) {
     return refuse(s, route, `${req.method()} ${url.href}`, 'writes are off (allowWrites is not set)');
   }
   return route.continue();
+}
+
+// A new tab's first navigation has no frame yet, and frame() throws; it is a top-level page.
+function isTopLevel(req) {
+  try { return !req.frame().parentFrame(); } catch { return true; }
 }
 
 function refuse(s, route, target, reason) {
@@ -413,6 +452,7 @@ function stopSummary(s) {
 
 function shutdown(s, server) {
   server.close();
+  if (!s) process.exit(0);
   s.browser.close().finally(() => process.exit(0));
 }
 

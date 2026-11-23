@@ -39,7 +39,9 @@ cat > "$WORK/.personas/personas.json" <<'JSON'
   "personas": [
     { "id": "anna", "browser": "chromium" },
     { "id": "erik", "browser": "chromium", "viewport": { "width": 800, "height": 600 } },
-    { "id": "maja", "browser": "chromium", "allowWrites": true }
+    { "id": "maja", "browser": "chromium", "allowWrites": true },
+    { "id": "lax", "browser": "chromium", "allowWrites": "false" },
+    { "id": "..", "browser": "chromium" }
   ]
 }
 JSON
@@ -123,7 +125,25 @@ pb goto --session t-anna --url /form
 pb look --session t-anna
 ref="$(ref_of 'textbox "Name"')"
 pb type --session t-anna --ref "$ref" --text hello --submit
-assert_refused "a POST without allowWrites" "allowWrites is not set"
+assert_refused "a POST form without allowWrites" "allowWrites is not set"
+pb look --session t-anna
+ref="$(ref_of 'button "Ping"')"
+pb act --session t-anna --ref "$ref" --do click
+sleep 1 # the fetch runs after the click returns
+pb look --session t-anna
+pb goto --session t-anna --url /search
+pb look --session t-anna
+ref="$(ref_of 'textbox "Query"')"
+pb type --session t-anna --ref "$ref" --text opening --submit
+assert_refused "a GET form without allowWrites" "allowWrites is not set"
+if grep -q '^GET /found' "$SITE_LOG"; then _fail "a GET form submit must not reach the site"; else _pass; fi
+pb goto --session t-anna --url /search
+pb look --session t-anna
+ref="$(ref_of 'link "New tab"')"
+pb act --session t-anna --ref "$ref" --do click
+pb look --session t-anna # the new tab is the page from the next command on
+assert_has "a link to a new tab on the allowlist" "url: $BASE/"$'\n'
+
 start t-maja maja
 assert_has "start maja" "writes: allowed"
 pb goto --session t-maja --url /form
@@ -148,12 +168,34 @@ if [[ "$_out" == *'no session "t-anna"'* ]]; then _pass; else _fail "a stopped s
 # steps.jsonl: one line per action, each with url, action, target and result.
 steps="$WORK/run/anna/steps.jsonl"
 if jq -e -s 'all(has("url") and has("action") and has("target") and has("result"))' "$steps" >/dev/null; then _pass; else _fail "every steps.jsonl line needs url, action, target, result"; fi
-if jq -e -s 'any(.action == "refused" and (.target | startswith("POST")))' "$steps" >/dev/null; then _pass; else _fail "steps.jsonl must log the refused POST"; fi
+if jq -e -s 'any(.action == "refused" and (.target | startswith("POST")))' "$steps" >/dev/null; then _pass; else _fail "steps.jsonl must log the refused fetch POST"; fi
+if jq -e -s 'any(.action == "refused" and (.target | startswith("submit")))' "$steps" >/dev/null; then _pass; else _fail "steps.jsonl must log the refused form submit"; fi
 if jq -e -s 'any(.action == "act" and .target == "e999" and (.result | startswith("error")))' "$steps" >/dev/null; then _pass; else _fail "steps.jsonl must log the failed action"; fi
 
 # Input errors fail before a daemon starts.
 pb start --session t-x --persona "$WORK/.personas/personas.json" --persona-id nobody --run "$WORK/run" --url "$BASE/"
 if [[ "$_status" -ne 0 && "$_out" == *'no persona "nobody"'* ]]; then _pass; else _fail "an unknown persona must fail: $_out"; fi
+for id in lax ..; do
+  pb start --session t-bad --persona "$WORK/.personas/personas.json" --persona-id "$id" --run "$WORK/run" --url "$BASE/"
+  if [[ "$_status" -ne 0 ]]; then _pass; else _fail "persona $id must not start: $_out"; SESSIONS+=(t-bad); "$PB" stop --session t-bad >/dev/null 2>&1; fi
+done
+
+# Two starts of the same session id at once: exactly one wins, and stop reaches it.
+SESSIONS+=(t-dup)
+dups=()
+for n in 1 2; do
+  "$PB" start --session t-dup --persona "$WORK/.personas/personas.json" --persona-id anna \
+    --run "$WORK/dup$n" --url "$BASE/" > "$WORK/dup$n.out" 2>&1 &
+  dups+=("$!")
+done
+wins=0
+for pid in "${dups[@]}"; do wait "$pid" && wins=$((wins + 1)); done
+if [ "$wins" -eq 1 ]; then _pass; else _fail "exactly one of two same-id starts must win, got $wins: $(cat "$WORK"/dup*.out)"; fi
+pb stop --session t-dup
+assert_has "stop reaches the winning same-id start" "stopped"
+sleep 1
+if pgrep -f "__daemon .*t-dup.sock" >/dev/null; then _fail "a same-id daemon was left running"; else _pass; fi
+
 pb look --session '../x'
 if [[ "$_status" -ne 0 && "$_out" == *"--session must be"* ]]; then _pass; else _fail "an unsafe session id must fail: $_out"; fi
 

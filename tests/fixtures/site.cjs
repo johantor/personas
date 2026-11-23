@@ -23,7 +23,10 @@ http.createServer((req, res) => {
     return res.end(page(`<a href="http://127.0.0.1:${req.socket.localPort}/">Elsewhere</a>`));
   }
   if (url.pathname === '/form') {
-    return res.end(page('<form method="post" action="/submit"><input name="n" aria-label="Name"><button>Send</button></form>'));
+    return res.end(page('<form method="post" action="/submit"><input name="n" aria-label="Name"><button>Send</button></form><button type="button" onclick="fetch(\'/submit\', { method: \'POST\' })">Ping</button>'));
+  }
+  if (url.pathname === '/search') {
+    return res.end(page('<form action="/found"><input name="q" aria-label="Query"></form><a href="/" target="_blank">New tab</a>'));
   }
   if (url.pathname === '/submit') return res.end(page('<p>thanks</p>'));
   res.end(page(`<h1>Home</h1><p>cookie: ${req.headers.cookie || 'none'}</p>
