@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Self-tests for the release scripts (johantor/crew, johantor/board and johantor/personas carry the same suite):
+# Self-tests for the release scripts (adapted from johantor/crew and johantor/board):
 #   scripts/check-changelog.sh — a change under plugin/ must bump the version. Diff-driven, so
 #     each case builds a throwaway repo with real commits.
 #   scripts/release-notes.sh   — one version's CHANGELOG section, the GitHub Release notes.
@@ -68,6 +68,14 @@ assert_out "names the bump" "1.0.0 -> 1.1.0"
 d="$(new_gate_repo)"; printf 'open v2\n' > "$d/plugin/commands/open.md"; bump "$d" 1.1.0 no
 gate_commit "$d" "feat: open (v1.1.0)"
 run_gate "$d"; assert_out "a bump needs its changelog entry" "has no '## [1.1.0]' entry"
+
+d="$(new_gate_repo)"; printf 'open v2\n' > "$d/plugin/commands/open.md"; bump "$d" 0.9.0
+gate_commit "$d" "feat: open (v0.9.0)"
+run_gate "$d"; assert_out "a lower version is refused" "is lower than 1.0.0"
+
+d="$(new_gate_repo)"; printf 'open v2\n' > "$d/plugin/commands/open.md"; bump "$d" 1.0.10
+gate_commit "$d" "fix: open (v1.0.10)"
+run_gate "$d"; assert_out "versions compare per number" "1.0.0 -> 1.0.10"
 
 # Mid-branch: an uncommitted edit counts, so the check is useful before the commit.
 d="$(new_gate_repo)"; printf 'open v2\n' > "$d/plugin/commands/open.md"

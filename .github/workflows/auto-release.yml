@@ -37,5 +37,6 @@ jobs:
             exit 0
           fi
           scripts/release-notes.sh . "$version" > /tmp/release-notes.md
-          gh release create "$tag" --repo "$GITHUB_REPOSITORY" \
+          # Tag the commit this run read the version from, not whatever main points at now.
+          gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
             --title "personas v${version}" --notes-file /tmp/release-notes.md

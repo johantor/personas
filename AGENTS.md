@@ -49,8 +49,8 @@ command here, in `validate.yml` and in `.claude/crew.md` in the same PR.
 counts. Patch for a fix, minor for an addition, major for a break.
 
 1. Bump `version` in `plugin/.claude-plugin/plugin.json` and add a matching `## [X.Y.Z]` entry to
-   `CHANGELOG.md` in the same PR. `check-changelog.sh` (the same script as crew's) fails a change
-   under `plugin/` without one.
+   `CHANGELOG.md` in the same PR. `check-changelog.sh` (adapted from crew's) fails a change
+   under `plugin/` without one, or with a lower version.
 2. Merge to `main`. `auto-release.yml` creates the `v<version>` tag and a GitHub Release from that
    changelog section.
 
