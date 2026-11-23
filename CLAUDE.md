@@ -47,12 +47,16 @@ Paths in *Map* and *Gotchas* are relative to `plugin/`, the directory users inst
 
 - `.claude-plugin/plugin.json` — the manifest. Its `description` is copied word for word into
   the marketplace entry in `johantor/plugins`, so a change here is a change there.
+- `bin/persona-browser` — a `sh` wrapper that checks for Node, then runs
+  `lib/persona-browser.cjs`: the CLI and its daemon, one Playwright context per session id on a
+  socket in a `0700` temp directory. It enforces the allowlist, the block list and `allowWrites`
+  in one `context.route()`, and appends every action to `steps.jsonl`.
 - `hooks/hooks.json` — empty until `url-guard.sh` lands (M2, #4). It exists now because
   `tests/lib.sh` needs `plugin/hooks/`.
 
-Planned, per #1, and added to this map by the PR that adds each: `bin/persona-browser` (M1),
-`agents/`, `skills/persona-contract/`, `skills/report-schema/`, `schema/findings.schema.json`
-and `hooks/url-guard.sh` (M2), `commands/run.md`, `commands/report.md`, `agents/reporter.md` and
+Planned, per #1, and added to this map by the PR that adds each: `agents/`,
+`skills/persona-contract/`, `skills/report-schema/`, `schema/findings.schema.json` and
+`hooks/url-guard.sh` (M2), `commands/run.md`, `commands/report.md`, `agents/reporter.md` and
 `skills/personas-runner/` (M3), `commands/init.md` and `schema/personas.schema.json` (M4),
 `commands/diff.md`, `scripts/sweep.mjs` and `skills/migration-diff/` (M5).
 
@@ -61,3 +65,5 @@ and `hooks/url-guard.sh` (M2), `commands/run.md`, `commands/report.md`, `agents/
 - Parallel subagents in one session share its MCP servers, so visitors must not drive a shared
   browser MCP: their tabs and cookies would collide. That is why `persona-browser` keeps one
   browser context per session id (#1, *browser isolation*).
+- `persona-browser` blocks service workers, because their requests bypass `context.route()` and
+  so would bypass the allowlist and the write refusal.
