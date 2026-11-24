@@ -290,7 +290,6 @@ async function openSession(config) {
     s.warnings.push(`network "${persona.network}" needs chromium; not throttled in ${browserName}`);
   }
   await context.route('**/*', (route) => routeRequest(s, route));
-  if (!persona.allowWrites) await refuseFormSubmits(s);
   // A link that opens a new tab moves the visitor there, as it would a person.
   context.on('page', async (page) => {
     s.page = page;
@@ -302,20 +301,6 @@ async function openSession(config) {
   });
   await context.newPage();
   return s;
-}
-
-// A GET form passes the method check in routeRequest, so submits are stopped in the page: a
-// capture listener runs before the site's own handlers, and form.submit() fires no event.
-async function refuseFormSubmits(s) {
-  await s.context.exposeBinding('__personaBrowserSubmit', (_source, action) => {
-    s.refusals.push(`refused: submit ${action} (writes are off (allowWrites is not set))`);
-    logStep(s, 'refused', `submit ${action}`, 'writes are off (allowWrites is not set)');
-  });
-  await s.context.addInitScript(() => {
-    const refuse = (form) => window.__personaBrowserSubmit(form.action);
-    window.addEventListener('submit', (e) => { e.preventDefault(); e.stopImmediatePropagation(); refuse(e.target); }, true);
-    HTMLFormElement.prototype.submit = function submit() { refuse(this); };
-  });
 }
 
 function routeRequest(s, route) {

@@ -135,8 +135,7 @@ pb goto --session t-anna --url /search
 pb look --session t-anna
 ref="$(ref_of 'textbox "Query"')"
 pb type --session t-anna --ref "$ref" --text opening --submit
-assert_refused "a GET form without allowWrites" "allowWrites is not set"
-if grep -q '^GET /found' "$SITE_LOG"; then _fail "a GET form submit must not reach the site"; else _pass; fi
+assert_has "a GET form, such as a search, without allowWrites" "now at $BASE/found?q=opening"
 pb goto --session t-anna --url /search
 pb look --session t-anna
 ref="$(ref_of 'link "New tab"')"
@@ -169,7 +168,6 @@ if [[ "$_out" == *'no session "t-anna"'* ]]; then _pass; else _fail "a stopped s
 steps="$WORK/run/anna/steps.jsonl"
 if jq -e -s 'all(has("url") and has("action") and has("target") and has("result"))' "$steps" >/dev/null; then _pass; else _fail "every steps.jsonl line needs url, action, target, result"; fi
 if jq -e -s 'any(.action == "refused" and (.target | startswith("POST")))' "$steps" >/dev/null; then _pass; else _fail "steps.jsonl must log the refused fetch POST"; fi
-if jq -e -s 'any(.action == "refused" and (.target | startswith("submit")))' "$steps" >/dev/null; then _pass; else _fail "steps.jsonl must log the refused form submit"; fi
 if jq -e -s 'any(.action == "act" and .target == "e999" and (.result | startswith("error")))' "$steps" >/dev/null; then _pass; else _fail "steps.jsonl must log the failed action"; fi
 
 # Input errors fail before a daemon starts.

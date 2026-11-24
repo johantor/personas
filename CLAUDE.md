@@ -50,8 +50,8 @@ Paths in *Map* and *Gotchas* are relative to `plugin/`, the directory users inst
 - `bin/persona-browser` — a `sh` wrapper that checks for Node, then runs
   `lib/persona-browser.cjs`: the CLI and its daemon, one Playwright context per session id on a
   socket in a `0700` temp directory. It enforces the allowlist, the block list and `allowWrites`
-  in one `context.route()`, refuses form submits with an init script, and appends every action
-  to `steps.jsonl`.
+  in one `context.route()`, and appends every action to `steps.jsonl`. A GET form is allowed
+  without `allowWrites`, so personas can search (operator decision, #9).
 - `hooks/hooks.json` — empty until `url-guard.sh` lands (M2, #4). It exists now because
   `tests/lib.sh` needs `plugin/hooks/`.
 
