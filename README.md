@@ -62,6 +62,10 @@ A host in either list also matches its subdomains.
   notices and leaves the page, because Playwright does not route a redirect's follow-up request.
 - The allowlist covers the top-level page. Iframes from other hosts load and can be clicked.
 - WebSocket messages are not checked by the write refusal.
+- A visitor can drive another visitor's session if it names that session id. The sessions still
+  share no cookies, and both stay on their allowlists.
+- The visitor cannot type `& | ; $ < > ( ) \` or a backtick: `visitor-guard` refuses them in its
+  commands, so it types a close variant.
 
 ## Privacy
 

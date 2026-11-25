@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/johantor/personas/plugin/schema/findings.schema.json",
+  "title": "personas findings",
+  "description": "The findings of one persona (the JSON block in report.md) or of a whole run (findings.json). The report-schema skill defines severity and evidence.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["id", "severity", "category", "site", "url", "persona", "steps", "expected", "actual", "evidence", "seenBy", "confidence"],
+    "properties": {
+      "id": { "type": "string", "pattern": "^F-[0-9]{3,}$" },
+      "severity": { "enum": ["blocker", "major", "minor", "note"] },
+      "category": { "enum": ["broken", "ux-friction", "accessibility", "content", "visual", "performance", "migration-diff"] },
+      "site": { "enum": ["old", "new", "single"] },
+      "url": { "type": "string" },
+      "persona": { "type": "string" },
+      "steps": { "type": "array", "items": { "type": "string" } },
+      "expected": { "type": "string" },
+      "actual": { "type": "string" },
+      "evidence": { "type": "array", "items": { "type": "string" } },
+      "seenBy": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+      "confidence": { "enum": ["high", "medium", "low"] }
+    }
+  }
+}
