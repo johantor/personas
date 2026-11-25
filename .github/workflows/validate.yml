@@ -21,7 +21,9 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Lint shell files
-        run: shellcheck tests/*.sh scripts/*.sh
+        run: shellcheck tests/*.sh scripts/*.sh plugin/bin/persona-browser
+      - name: Check Node syntax
+        run: for f in plugin/lib/*.cjs tests/fixtures/*.cjs; do node --check "$f"; done
 
   manifest:
     permissions:
@@ -55,6 +57,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install Playwright
+        run: npm install --no-save playwright@1.63.0 && npx playwright install --with-deps chromium
       - name: Tests
         run: |
           fail=0

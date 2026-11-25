@@ -14,11 +14,12 @@ applies here.
 
 ## Repository layout
 
-- `plugin/`: the plugin. Today it holds the manifest (`.claude-plugin/plugin.json`) and an empty
-  `hooks/hooks.json`; the milestones in #1 add the rest (CLAUDE.md, *Map*). `README.md` and
+- `plugin/`: the plugin. Today it holds the manifest (`.claude-plugin/plugin.json`), an empty
+  `hooks/hooks.json` and the `persona-browser` CLI (`bin/` and `lib/`); the milestones in #1 add
+  the rest (CLAUDE.md, *Map*). `README.md` and
   `CHANGELOG.md` stay at the root.
-- `tests/`: `release.test.sh` for the release scripts, with the harness in `lib.sh` (a copy of
-  crew's).
+- `tests/`: `release.test.sh` for the release scripts and `persona-browser.test.sh` for the CLI,
+  with the harness in `lib.sh` (a copy of crew's) and a local test site in `fixtures/site.cjs`.
 - `scripts/`: repo tooling, never part of the plugin's behaviour: `check-changelog.sh` (the
   release gate) and `release-notes.sh` (used by `auto-release.yml`).
 - `docs/`: the site on GitHub Pages. `style.css` is an exact copy of crew's `docs/style.css`;
@@ -35,12 +36,15 @@ applies here.
 Run what CI runs (`.github/workflows/validate.yml`) before you push:
 
 ```bash
-shellcheck tests/*.sh scripts/*.sh
+shellcheck tests/*.sh scripts/*.sh plugin/bin/persona-browser
+for f in plugin/lib/*.cjs tests/fixtures/*.cjs; do node --check "$f"; done
 bash tests/release.test.sh          # the changelog gate and the release notes
+bash tests/persona-browser.test.sh  # drives the CLI against a local site
 scripts/check-changelog.sh main     # a change under plugin/ => version bump
 ```
 
-`jq` and `git` are required. When a milestone adds a hook or Node code, add its lint and test
+`jq`, `git` and Node 20+ are required, and the CLI test needs Playwright with chromium:
+`npm install --no-save playwright@1.63.0 && npx playwright install chromium`. When a milestone adds a hook or Node code, add its lint and test
 command here, in `validate.yml` and in `.claude/crew.md` in the same PR.
 
 ## Releasing

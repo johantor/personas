@@ -31,6 +31,38 @@ the steps and screenshots. A reporter merges the reports into one summary.
 | `/personas:diff --old <url> --new <url>` | A scripted page sweep of both sites with no model calls, then each persona's tasks on both. |
 | `/personas:report [run-id]` | Re-opens the merged summary of a run. |
 
+## The browser CLI
+
+`plugin/bin/persona-browser` is the browser each visitor drives, and you can drive it by hand. It
+needs Node 20+ and Playwright: `npm install -D playwright && npx playwright install chromium webkit`.
+
+```bash
+persona-browser start --session a --persona .personas/personas.json --persona-id anna \
+  --run .personas/runs/r1 --url http://localhost:3000
+persona-browser look --session a                    # screenshot path + accessibility tree with refs
+persona-browser act  --session a --ref e12 --do click
+persona-browser type --session a --ref e7 --text "opening hours" --submit
+persona-browser stop --session a                    # also lists the blocked hosts
+```
+
+Each session has its own browser context, so sessions share no cookies, storage or auth. Every
+action goes to `<run>/<persona-id>/steps.jsonl`. The CLI refuses:
+
+- Navigation to a host that is not the `--url` host or listed under `## Allowed hosts` in
+  `brief.md`.
+- Requests to analytics and tag hosts, plus any listed under `## Blocked hosts`.
+- Every request except GET and HEAD, unless the persona sets `allowWrites`. A GET form, such as a
+  search, is sent.
+
+A host in either list also matches its subdomains.
+
+## Known gaps
+
+- A redirect from an allowed host to another host sends that one GET before `persona-browser`
+  notices and leaves the page, because Playwright does not route a redirect's follow-up request.
+- The allowlist covers the top-level page. Iframes from other hosts load and can be clicked.
+- WebSocket messages are not checked by the write refusal.
+
 ## Privacy
 
 Everything a run writes stays on disk under `.personas/` in your project. The plugin contacts only
