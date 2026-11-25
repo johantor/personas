@@ -38,8 +38,7 @@ fi
 u="${u#"${u%%[!/]*}"}"  # leading slashes
 u="${u%%[/?#]*}"        # the path
 u="${u##*@}"            # userinfo
-u="${u%:*([0-9])}"      # the port
-host="${u#[}"; host="${host%]}"
+host="${u%:*([0-9])}"   # the port; an IPv6 host keeps its brackets, as the daemon writes it
 [ -n "$host" ] || block "no host in --url $url"
 
 while IFS= read -r entry; do

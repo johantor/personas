@@ -59,8 +59,9 @@ Paths in *Map* and *Gotchas* are relative to `plugin/`, the directory users inst
 - `hooks/url-guard.sh` — PreToolUse on Bash: refuses `persona-browser goto` to a host off the
   session's allowlist, read from the `<session>.hosts` file the daemon writes beside its socket.
 - `hooks/visitor-guard.sh` — PreToolUse on Bash: the `personas:visitor` agent runs one plain
-  `persona-browser` command, with no chaining, substitution or redirection, and never `start`:
-  the runner starts and stops each session, because `start --url` sets the allowlist.
+  `persona-browser` command (`look`, `act`, `type`, `key` or `goto`), with no chaining,
+  substitution or redirection. The runner starts and stops each session, because `start --url`
+  sets the allowlist.
 
 Planned, per #1, and added to this map by the PR that adds each: `commands/run.md`,
 `commands/report.md`, `agents/reporter.md` and `skills/personas-runner/` (M3), `commands/init.md` and `schema/personas.schema.json` (M4),

@@ -10,7 +10,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 TMPDIR="$(new_tmpdir)"
 export TMPDIR
 mkdir -p "$TMPDIR/persona-browser-$(id -u)"
-printf 'staging.example.se\nlocalhost\n' > "$TMPDIR/persona-browser-$(id -u)/s1.hosts"
+printf 'staging.example.se\nlocalhost\n[::1]\n' > "$TMPDIR/persona-browser-$(id -u)/s1.hosts"
 
 bash_call() { # bash_call <command> [agent_type]
   jq -nc --arg c "$1" --arg a "${2:-}" '{tool_name: "Bash", tool_input: {command: $c}} + (if $a == "" then {} else {agent_type: $a} end)'
@@ -21,6 +21,8 @@ goto() { bash_call "persona-browser goto --session s1 --url $1"; }
 assert_allow "an allowed host" url-guard.sh "$(goto https://staging.example.se/besok)"
 assert_allow "a subdomain of an allowed host" url-guard.sh "$(goto https://cdn.staging.example.se/)"
 assert_allow "an allowed host with a port" url-guard.sh "$(goto http://localhost:3000/)"
+assert_allow "an allowed IPv6 host" url-guard.sh "$(goto 'http://[::1]:3000/next')"
+assert_block "another IPv6 host" url-guard.sh "$(goto 'http://[::2]/')" "[::2] is not on the allowlist"
 assert_allow "a relative URL" url-guard.sh "$(goto /besok)"
 assert_allow "a quoted relative URL" url-guard.sh "$(goto "'/sök?q=a b'")"
 assert_allow "another command" url-guard.sh "$(bash_call 'curl https://evil.example/')"
@@ -59,7 +61,11 @@ assert_block "a visitor substitutes a command" visitor-guard.sh \
 assert_block "a visitor writes a second line" visitor-guard.sh "$(bash_call $'persona-browser look --session s1\nls' "$V")" ""
 assert_block "a visitor starts a session" visitor-guard.sh \
   "$(bash_call 'persona-browser start --session s2 --persona p.json --persona-id a --run r --url https://evil.example/' "$V")" \
-  "the runner starts the session"
+  "the runner starts and stops the session"
+for sub in "'start'" 'st""art' '"start"' __daemon stop "'look'"; do
+  assert_block "a visitor runs subcommand $sub" visitor-guard.sh \
+    "$(bash_call "persona-browser $sub --session s1 --url https://evil.example/" "$V")" ""
+done
 assert_block "a fake persona-browser path" visitor-guard.sh "$(bash_call './persona-browser look' "$V")" "only persona-browser"
 
 finish
