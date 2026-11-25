@@ -52,13 +52,18 @@ Paths in *Map* and *Gotchas* are relative to `plugin/`, the directory users inst
   socket in a `0700` temp directory. It enforces the allowlist, the block list and `allowWrites`
   in one `context.route()`, and appends every action to `steps.jsonl`. A GET form is allowed
   without `allowWrites`, so personas can search (operator decision, #9).
-- `hooks/hooks.json` — empty until `url-guard.sh` lands (M2, #4). It exists now because
-  `tests/lib.sh` needs `plugin/hooks/`.
+- `agents/visitor.md` — one persona on one site. Tools `Bash`, `Read`, `Skill`; it preloads
+  `persona-contract` (how to play and stay in bounds) and `report-schema` (the report layout).
+  It hands its `report.md` back as text, and the caller saves it (*Gotchas*).
+- `schema/findings.schema.json` — the finding format; `report-schema` explains it.
+- `hooks/url-guard.sh` — PreToolUse on Bash: refuses `persona-browser goto` to a host off the
+  session's allowlist, read from the `<session>.hosts` file the daemon writes beside its socket.
+- `hooks/visitor-guard.sh` — PreToolUse on Bash: the `personas:visitor` agent runs one plain
+  `persona-browser` command, with no chaining, substitution or redirection, and never `start`:
+  the runner starts and stops each session, because `start --url` sets the allowlist.
 
-Planned, per #1, and added to this map by the PR that adds each: `agents/`,
-`skills/persona-contract/`, `skills/report-schema/`, `schema/findings.schema.json` and
-`hooks/url-guard.sh` (M2), `commands/run.md`, `commands/report.md`, `agents/reporter.md` and
-`skills/personas-runner/` (M3), `commands/init.md` and `schema/personas.schema.json` (M4),
+Planned, per #1, and added to this map by the PR that adds each: `commands/run.md`,
+`commands/report.md`, `agents/reporter.md` and `skills/personas-runner/` (M3), `commands/init.md` and `schema/personas.schema.json` (M4),
 `commands/diff.md`, `scripts/sweep.mjs` and `skills/migration-diff/` (M5).
 
 ## Gotchas
@@ -68,3 +73,7 @@ Planned, per #1, and added to this map by the PR that adds each: `agents/`,
   browser context per session id (#1, *browser isolation*).
 - `persona-browser` blocks service workers, because their requests bypass `context.route()` and
   so would bypass the allowlist and the write refusal.
+- Claude Code refuses a subagent's Write of a report file ("Subagents should return findings as
+  text"). So the visitor has no `Write` tool and hands its report back; the runner saves it.
+- `persona-browser` counts steps and refuses past `maxSteps`, so the limit does not depend on the
+  model. The visitor's `maxTurns: 100` is only a backstop.

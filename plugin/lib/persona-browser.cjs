@@ -144,6 +144,9 @@ function buildConfig(opts) {
   if (persona.allowWrites !== undefined && typeof persona.allowWrites !== 'boolean') {
     throw new Error(`allowWrites must be true or false, not ${JSON.stringify(persona.allowWrites)}`);
   }
+  if (persona.maxSteps !== undefined && !(Number.isInteger(persona.maxSteps) && persona.maxSteps > 0)) {
+    throw new Error(`maxSteps must be a positive whole number, not ${JSON.stringify(persona.maxSteps)}`);
+  }
 
   const base = new URL(opts.url);
   if (!/^https?:$/.test(base.protocol)) throw new Error(`--url must be http or https: ${opts.url}`);
@@ -200,6 +203,10 @@ function loadPlaywright() {
 
 // Listening is the lock on the session id: a second daemon gets EADDRINUSE. A socket nobody
 // answers on was left by a crash, so it is removed once and the listen retried.
+// hooks/url-guard.sh reads the session's allowlist from here, beside the socket. The hook is a
+// shell script, so a Windows named pipe gets no file.
+const hostsFile = (sock) => (process.platform === 'win32' ? null : sock.replace(/\.sock$/, '.hosts'));
+
 async function listen(server, sock) {
   const attempt = () => new Promise((resolve, reject) => {
     server.once('error', reject).listen(sock, () => { server.off('error', reject); resolve(); });
@@ -219,7 +226,7 @@ async function listen(server, sock) {
 async function runDaemon(sock, config) {
   let s = null;
   let idle;
-  const touch = () => { clearTimeout(idle); idle = setTimeout(() => shutdown(s, server), IDLE_MS); };
+  const touch = () => { clearTimeout(idle); idle = setTimeout(() => shutdown(s, server, sock), IDLE_MS); };
   let queue = Promise.resolve(); // one command at a time, in arrival order
   const server = net.createServer((conn) => {
     let data = '';
@@ -237,12 +244,13 @@ async function runDaemon(sock, config) {
           reply = { ok: false, error: err.message };
         }
         conn.end(JSON.stringify(reply) + '\n');
-        if (request.command === 'stop' && reply.ok) shutdown(s, server);
+        if (request.command === 'stop' && reply.ok) shutdown(s, server, sock);
       });
     });
     conn.on('error', () => {}); // a client that went away must not take the session down
   });
   await listen(server, sock);
+  if (hostsFile(sock)) fs.writeFileSync(hostsFile(sock), config.allowedHosts.join('\n') + '\n');
   touch();
   s = await openSession(config).catch((err) => {
     if (!/Executable doesn't exist/.test(err.message)) throw err;
@@ -284,7 +292,7 @@ async function openSession(config) {
   const s = {
     config, browser, context, browserName, page: null,
     shot: fs.readdirSync(path.join(config.personaDir, 'shots')).length, refusals: [], blocked: new Map(), warnings: [],
-    stepsFile: path.join(config.personaDir, 'steps.jsonl'),
+    stepsFile: path.join(config.personaDir, 'steps.jsonl'), steps: 0,
   };
   if (persona.network && browserName !== 'chromium') {
     s.warnings.push(`network "${persona.network}" needs chromium; not throttled in ${browserName}`);
@@ -353,6 +361,12 @@ async function handle(s, { command, opts = {} }) {
   const action = ACTIONS[command];
   if (!action) throw new UsageError(`unknown command: ${command}`);
   s.refusals = [];
+  // maxSteps is enforced here, not left to the visitor: every command but look is a step.
+  if (command !== 'look') {
+    const max = s.config.persona.maxSteps;
+    if (max && s.steps >= max) throw new Error(`refused: maxSteps (${max}) reached; write the report and stop`);
+    s.steps += 1;
+  }
   const target = opts.ref || opts.url || opts.key || null;
   let result;
   try {
@@ -435,8 +449,9 @@ function stopSummary(s) {
   return `stopped; steps in ${s.stepsFile}\nblocked: ${blocked || 'none'}`;
 }
 
-function shutdown(s, server) {
+function shutdown(s, server, sock) {
   server.close();
+  if (hostsFile(sock)) fs.rmSync(hostsFile(sock), { force: true });
   if (!s) process.exit(0);
   s.browser.close().finally(() => process.exit(0));
 }

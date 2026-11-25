@@ -41,6 +41,8 @@ cat > "$WORK/.personas/personas.json" <<'JSON'
     { "id": "erik", "browser": "chromium", "viewport": { "width": 800, "height": 600 } },
     { "id": "maja", "browser": "chromium", "allowWrites": true },
     { "id": "lax", "browser": "chromium", "allowWrites": "false" },
+    { "id": "brief", "browser": "chromium", "maxSteps": 2 },
+    { "id": "odd", "browser": "chromium", "maxSteps": "40" },
     { "id": "..", "browser": "chromium" }
   ]
 }
@@ -158,7 +160,12 @@ pb act --session t-erik --do scroll --value down
 assert_has "scroll the page" "scrolled down"
 
 # Block list: the default analytics host and the brief's extra host.
+# hooks/url-guard.sh reads the session's allowlist from this file; stop removes it.
+hosts_file="${TMPDIR:-/tmp}"
+hosts_file="${hosts_file%/}/persona-browser-$(id -u)/t-anna.hosts"
+if [ "$(cat "$hosts_file" 2>/dev/null)" = localhost ]; then _pass; else _fail "the daemon must write its allowlist to $hosts_file"; fi
 pb stop --session t-anna
+if [ -e "$hosts_file" ]; then _fail "stop must remove $hosts_file"; else _pass; fi
 assert_has "stop" "blocked: "
 if [[ "$_out" == *www.google-analytics.com* && "$_out" == *tracker.test* ]]; then _pass; else _fail "stop must name the blocked default and brief hosts: $_out"; fi
 pb look --session t-anna
@@ -170,10 +177,20 @@ if jq -e -s 'all(has("url") and has("action") and has("target") and has("result"
 if jq -e -s 'any(.action == "refused" and (.target | startswith("POST")))' "$steps" >/dev/null; then _pass; else _fail "steps.jsonl must log the refused fetch POST"; fi
 if jq -e -s 'any(.action == "act" and .target == "e999" and (.result | startswith("error")))' "$steps" >/dev/null; then _pass; else _fail "steps.jsonl must log the failed action"; fi
 
+# maxSteps: the start page is step 1, so one more action fits; look is not a step.
+start t-brief brief
+pb key --session t-brief --key Tab
+assert_has "the last step within maxSteps" "pressed Tab"
+pb look --session t-brief
+assert_has "look past maxSteps" "screenshot:"
+pb key --session t-brief --key Tab
+assert_refused "a step past maxSteps" "maxSteps (2) reached"
+pb stop --session t-brief
+
 # Input errors fail before a daemon starts.
 pb start --session t-x --persona "$WORK/.personas/personas.json" --persona-id nobody --run "$WORK/run" --url "$BASE/"
 if [[ "$_status" -ne 0 && "$_out" == *'no persona "nobody"'* ]]; then _pass; else _fail "an unknown persona must fail: $_out"; fi
-for id in lax ..; do
+for id in lax odd ..; do
   pb start --session t-bad --persona "$WORK/.personas/personas.json" --persona-id "$id" --run "$WORK/run" --url "$BASE/"
   if [[ "$_status" -ne 0 ]]; then _pass; else _fail "persona $id must not start: $_out"; SESSIONS+=(t-bad); "$PB" stop --session t-bad >/dev/null 2>&1; fi
 done

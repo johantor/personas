@@ -12,7 +12,7 @@ backendTestCommand: for t in tests/*.test.sh; do bash "$t" || exit 1; done
 frontendTestCommand: none
 backendBuildCommand: none
 frontendBuildCommand: none
-backendLintCommand: shellcheck tests/*.sh scripts/*.sh plugin/bin/persona-browser
+backendLintCommand: shellcheck tests/*.sh scripts/*.sh plugin/bin/persona-browser plugin/hooks/*.sh
 frontendLintCommand: none
 formatMatrix: none
 baseBranch: main
