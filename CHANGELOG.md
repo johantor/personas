@@ -5,6 +5,13 @@ All notable changes to the `personas` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-11-26
+
+### Added
+
+- `/personas:run`, which runs the personas in batches and merges their reports, and `/personas:report`, which shows a run's summary (#11).
+- The `reporter` agent, the `personas-runner` skill, and `personas-check-findings`, which checks `findings.json` against the schema (#11).
+
 ## [0.3.0] - 2026-11-25
 
 ### Added

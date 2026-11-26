@@ -78,3 +78,28 @@ wrong.
 ~~~
 
 An empty run still writes `[]` under *Findings*. No other sections.
+
+## summary.md
+
+The reporter's merge of every persona's report, beside `findings.json` in the run folder.
+
+~~~markdown
+# Run <run-id>
+
+- Site: <url>
+- Personas: <n> (<ids>); goals completed: <n>
+- Findings: <n> (<blockers> blocker, <majors> major, <minors> minor, <notes> note)
+
+## Findings
+
+One line per finding, most severe first:
+
+- **F-001 blocker, broken** — <actual>, at <url>. Seen by <ids>. Evidence: <paths>.
+
+## Personas
+
+One line per persona: its outcome and its number of findings, with a link to its report.md.
+~~~
+
+Findings that two or more personas saw are one finding. Its `seenBy` lists them all, and its
+`evidence` keeps one screenshot from each.
