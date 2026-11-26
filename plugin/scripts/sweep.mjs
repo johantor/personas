@@ -36,7 +36,7 @@ async function listPaths(opts) {
     urls = fs.readFileSync(opts.urls, 'utf8').split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !l.startsWith('#'));
   } else {
     const locs = async (u) => {
-      const res = await fetch(u);
+      const res = await fetchOnSites(u, opts);
       if (!res.ok) throw new Error(`cannot read the sitemap ${u}: HTTP ${res.status}`);
       const xml = await res.text();
       const found = [...xml.matchAll(/<loc>\s*([^<]+?)\s*<\/loc>/g)].map((m) => m[1].replace(/&amp;/g, '&'));
@@ -48,9 +48,24 @@ async function listPaths(opts) {
   return [...new Set(urls.map(toPath))];
 }
 
+// A sitemap, its index entries and their redirects are fetched only from the two sites' own
+// hosts, so a sitemap cannot send the sweep to another host, analytics or internal.
+async function fetchOnSites(u, opts) {
+  const hosts = [new URL(opts.old).hostname, new URL(opts.new).hostname];
+  for (let hops = 0; hops <= 5; hops++) {
+    const host = new URL(u).hostname;
+    if (!hosts.includes(host) || hostMatches(host, DEFAULT_BLOCKED_HOSTS)) throw new Error(`refused: the sitemap names ${u}, which is not on the old or the new site`);
+    const res = await fetch(u, { redirect: 'manual' });
+    if (res.status < 300 || res.status >= 400 || !res.headers.get('location')) return res;
+    u = new URL(res.headers.get('location'), u).href;
+  }
+  throw new Error(`too many redirects for the sitemap ${u}`);
+}
+
 // One context per site: the sweep only reads, so it refuses writes, analytics hosts and
-// navigation to any host but the two sites, as persona-browser does.
-async function openSite(browser, base, hosts) {
+// navigation to any host but the site's own, as persona-browser does.
+async function openSite(browser, base) {
+  const hosts = [new URL(base).hostname];
   const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, serviceWorkers: 'block' });
   await context.route('**/*', (route) => {
     const req = route.request();
@@ -72,6 +87,10 @@ async function capture(site, p, shot) {
     const response = await page.goto(url, { waitUntil: 'load', timeout: 30_000 });
     const redirects = [];
     for (let r = response?.request().redirectedFrom(); r; r = r.redirectedFrom()) redirects.unshift(r.url());
+    // A redirect's follow-up skips the route, so an off-site landing page is refused here.
+    if (new URL(page.url()).hostname !== new URL(site.base).hostname) {
+      return { url, status: response?.status() ?? null, redirects, finalUrl: page.url(), error: `refused: redirected off the site to ${page.url()}`, consoleErrors };
+    }
     const data = await page.evaluate(() => {
       const main = document.querySelector('main, [role=main]') || document.body;
       return {
@@ -121,17 +140,24 @@ async function pixelDiff(page, a, b) {
   }, [src(a), src(b)]);
 }
 
-// The fields that differ, compared as paths where the two sites' hosts differ.
-function differs(row) {
+// The fields that differ. A URL on a site's own origin is compared as its path, since the two
+// sites run on different hosts; any other origin is kept, so a canonical that still names the
+// old host shows as a difference.
+function differs(row, opts) {
   const { old: o, new: n } = row;
-  if (o.error || n.error) return o.error && n.error ? [] : ['error'];
-  const rel = (u) => (u ? new URL(u).pathname + new URL(u).search : null);
+  if (o.error || n.error) return o.error && n.error && o.error === n.error ? [] : ['error'];
+  const local = (u, base) => {
+    if (!u) return null;
+    const url = new URL(u);
+    return url.origin === new URL(base).origin ? url.pathname + url.search : url.href;
+  };
   const fields = [];
   const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const chain = (side, base) => [...side.redirects, side.finalUrl].map((u) => local(u, base));
   if (o.status !== n.status) fields.push('status');
-  if (rel(o.finalUrl) !== rel(n.finalUrl)) fields.push('redirect');
+  if (!same(chain(o, opts.old), chain(n, opts.new))) fields.push('redirect');
   for (const key of ['title', 'description', 'h1', 'textHash', 'links']) if (!same(o[key], n[key])) fields.push(key);
-  if (rel(o.canonical) !== rel(n.canonical)) fields.push('canonical');
+  if (local(o.canonical, opts.old) !== local(n.canonical, opts.new)) fields.push('canonical');
   if (n.consoleErrors.some((e) => !o.consoleErrors.includes(e))) fields.push('consoleErrors');
   if (row.pixelDiff > PIXEL_THRESHOLD) fields.push('pixels');
   return fields;
@@ -146,8 +172,7 @@ async function main() {
 
   const browser = await loadPlaywright().chromium.launch();
   try {
-    const hosts = [new URL(opts.old).hostname, new URL(opts.new).hostname];
-    const sites = { old: await openSite(browser, opts.old, hosts), new: await openSite(browser, opts.new, hosts) };
+    const sites = { old: await openSite(browser, opts.old), new: await openSite(browser, opts.new) };
     const diffPage = await browser.newPage();
     const rows = new Array(paths.length);
     let next = 0;
@@ -157,7 +182,7 @@ async function main() {
         const name = `${String(i + 1).padStart(3, '0')}-${paths[i].replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'home'}.png`;
         const [o, n] = await Promise.all(['old', 'new'].map((k) => capture(sites[k], paths[i], path.join(dirs[k], name))));
         const row = { path: paths[i], old: o, new: n, pixelDiff: o.screenshot && n.screenshot ? await pixelDiff(diffPage, o.screenshot, n.screenshot) : null };
-        row.differs = differs(row);
+        row.differs = differs(row, opts);
         for (const side of [o, n]) if (side.screenshot) side.screenshot = path.relative(opts.out, side.screenshot);
         rows[i] = row;
       }

@@ -39,7 +39,9 @@ If one is missing, hand back at once with `remaining:` naming it. A diff run giv
 2. Read `<run>/sweep-changes.json`, the sweep rows that differ. Judge each row with the
    `migration-diff` skill: a meaningful difference becomes a `migration-diff` finding, grouped by
    kind of change, with the sweep screenshots as evidence; the rest you leave out.
-3. Set `site` on every finding as `migration-diff` says, and merge as in the steps above.
+3. Set `site` on every finding as `migration-diff` says, and merge as in the steps above. A
+   persona's evidence path is relative to its site folder, so prefix it with `old/` or `new/`
+   (`anna/shots/014.png` becomes `new/anna/shots/014.png`); sweep paths stay as they are.
 4. In `summary.md`, group the findings under *New on the new site*, *Only on the old site* and
    *On both sites*, and end with a *Sweep* section: the number of URLs that differ, by field.
 

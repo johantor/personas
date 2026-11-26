@@ -10,10 +10,10 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SWEEP="$REPO_ROOT/plugin/bin/personas-sweep"
 WORK="$(new_tmpdir)"
 
-# start_site <old|new>: starts that version in the background; sets site_pid and site_port.
+# start_site <old|new> [old port]: starts that version in the background; sets site_pid and site_port.
 start_site() {
   local tries=0
-  node "$REPO_ROOT/tests/fixtures/migration-site.cjs" "$1" > "$WORK/$1.port" &
+  node "$REPO_ROOT/tests/fixtures/migration-site.cjs" "$1" "${2:-}" > "$WORK/$1.port" &
   site_pid=$!
   until [ -s "$WORK/$1.port" ]; do
     tries=$((tries + 1)); [ "$tries" -le 100 ] || die "the $1 site did not start"; sleep 0.1
@@ -21,7 +21,7 @@ start_site() {
   read -r site_port < "$WORK/$1.port"
 }
 start_site old; old_pid=$site_pid; OLD_PORT=$site_port
-start_site new; new_pid=$site_pid; NEW_PORT=$site_port
+start_site new "$OLD_PORT"; new_pid=$site_pid; NEW_PORT=$site_port
 # shellcheck disable=SC2329 # called by the EXIT trap
 cleanup() { kill "$old_pid" "$new_pid" 2>/dev/null; rm -rf "$FIXTURE_ROOT"; }
 trap cleanup EXIT
@@ -58,6 +58,16 @@ if [ "$status" -eq 0 ] && [[ "$out" == *"2 URLs swept, 1 differ"* ]]; then _pass
 J="$WORK/b/sweep.json"
 assert_row "a new console error" / '.differs | index("consoleErrors")'
 
+# Redirect chains, off-site redirects and the old host in a canonical.
+printf '/hop\n/out\n/canon\n' > "$WORK/edge.txt"
+status=0
+out="$("$SWEEP" --old "$OLD_URL" --new "$NEW_URL" --urls "$WORK/edge.txt" --out "$WORK/e" 2>&1)" || status=$?
+if [ "$status" -eq 0 ] && [[ "$out" == *"3 URLs swept, 3 differ"* ]]; then _pass; else _fail "the edge-case sweep (exit $status): $out"; fi
+J="$WORK/e/sweep.json"
+assert_row "a longer redirect chain to the same page" /hop '.differs | index("redirect")'
+assert_row "a redirect off the site is refused" /out '(.new.error | startswith("refused: redirected off the site")) and (.new.screenshot == null) and (.differs | index("error"))'
+assert_row "a canonical that still names the old host" /canon '.differs == ["canonical"]'
+
 # Input errors.
 status=0
 out="$("$SWEEP" --old "$OLD_URL" --out "$WORK/c" 2>&1)" || status=$?
@@ -65,5 +75,8 @@ if [ "$status" -ne 0 ] && [[ "$out" == *usage* ]]; then _pass; else _fail "a mis
 status=0
 out="$("$SWEEP" --old "$OLD_URL" --new "$NEW_URL" --sitemap "$OLD_URL/nothing.xml" --out "$WORK/d" 2>&1)" || status=$?
 if [ "$status" -ne 0 ] && [[ "$out" == *"HTTP 404"* ]]; then _pass; else _fail "a missing sitemap must fail: $out"; fi
+status=0
+out="$("$SWEEP" --old "$OLD_URL" --new "$NEW_URL" --sitemap "$OLD_URL/index.xml" --out "$WORK/f" 2>&1)" || status=$?
+if [ "$status" -ne 0 ] && [[ "$out" == *"refused: the sitemap names http://www.google-analytics.com/collect"* ]]; then _pass; else _fail "a sitemap index entry off the sites must be refused: $out"; fi
 
 finish
