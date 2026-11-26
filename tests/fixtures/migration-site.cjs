@@ -31,6 +31,13 @@ http.createServer((req, res) => {
   if (p === '/hop' && version === 'old') { res.writeHead(301, { location: '/same' }); return res.end(); }
   if (p === '/hop') { res.writeHead(301, { location: '/step' }); return res.end(); }
   if (p === '/step') { res.writeHead(301, { location: '/same' }); return res.end(); }
+  // A permanent redirect that becomes a temporary one, to the same page.
+  if (p === '/perm') { res.writeHead(version === 'old' ? 301 : 302, { location: '/same' }); return res.end(); }
+  // A canonical that is not a valid URL on the new site.
+  if (p === '/badcanon') {
+    const html = page('Badcanon', '<p>Same text.</p>');
+    return res.end(version === 'new' ? html.replace('href="/badcanon"', 'href="https://"') : html);
+  }
   // The new version redirects off the site.
   if (p === '/out' && version === 'new') { res.writeHead(302, { location: `http://127.0.0.1:${req.socket.localPort}/same` }); return res.end(); }
   if (p === '/out') return res.end(page('Out', '<p>Stays on the old site.</p>'));

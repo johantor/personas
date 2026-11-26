@@ -59,14 +59,16 @@ J="$WORK/b/sweep.json"
 assert_row "a new console error" / '.differs | index("consoleErrors")'
 
 # Redirect chains, off-site redirects and the old host in a canonical.
-printf '/hop\n/out\n/canon\n' > "$WORK/edge.txt"
+printf '/hop\n/out\n/canon\n/perm\n/badcanon\n' > "$WORK/edge.txt"
 status=0
 out="$("$SWEEP" --old "$OLD_URL" --new "$NEW_URL" --urls "$WORK/edge.txt" --out "$WORK/e" 2>&1)" || status=$?
-if [ "$status" -eq 0 ] && [[ "$out" == *"3 URLs swept, 3 differ"* ]]; then _pass; else _fail "the edge-case sweep (exit $status): $out"; fi
+if [ "$status" -eq 0 ] && [[ "$out" == *"5 URLs swept, 5 differ"* ]]; then _pass; else _fail "the edge-case sweep (exit $status): $out"; fi
 J="$WORK/e/sweep.json"
 assert_row "a longer redirect chain to the same page" /hop '.differs | index("redirect")'
 assert_row "a redirect off the site is refused" /out '(.new.error | startswith("refused: redirected off the site")) and (.new.screenshot == null) and (.differs | index("error"))'
 assert_row "a canonical that still names the old host" /canon '.differs == ["canonical"]'
+assert_row "a 301 that became a 302" /perm '.differs == ["redirect"] and .old.redirects[0].status == 301 and .new.redirects[0].status == 302'
+assert_row "a malformed canonical is a difference, not a crash" /badcanon '.differs == ["canonical"]'
 
 # Input errors.
 status=0

@@ -86,7 +86,10 @@ async function capture(site, p, shot) {
   try {
     const response = await page.goto(url, { waitUntil: 'load', timeout: 30_000 });
     const redirects = [];
-    for (let r = response?.request().redirectedFrom(); r; r = r.redirectedFrom()) redirects.unshift(r.url());
+    // Each hop's status too: a 301 that became a 302 lands on the same page.
+    for (let r = response?.request().redirectedFrom(); r; r = r.redirectedFrom()) {
+      redirects.unshift({ url: r.url(), status: (await r.response())?.status() ?? null });
+    }
     // A redirect's follow-up skips the route, so an off-site landing page is refused here.
     if (new URL(page.url()).hostname !== new URL(site.base).hostname) {
       return { url, status: response?.status() ?? null, redirects, finalUrl: page.url(), error: `refused: redirected off the site to ${page.url()}`, consoleErrors };
@@ -148,12 +151,13 @@ function differs(row, opts) {
   if (o.error || n.error) return o.error && n.error && o.error === n.error ? [] : ['error'];
   const local = (u, base) => {
     if (!u) return null;
-    const url = new URL(u);
+    let url;
+    try { url = new URL(u); } catch { return u; } // a malformed canonical is compared as written
     return url.origin === new URL(base).origin ? url.pathname + url.search : url.href;
   };
   const fields = [];
   const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-  const chain = (side, base) => [...side.redirects, side.finalUrl].map((u) => local(u, base));
+  const chain = (side, base) => [...side.redirects.map((r) => `${r.status} ${local(r.url, base)}`), local(side.finalUrl, base)];
   if (o.status !== n.status) fields.push('status');
   if (!same(chain(o, opts.old), chain(n, opts.new))) fields.push('redirect');
   for (const key of ['title', 'description', 'h1', 'textHash', 'links']) if (!same(o[key], n[key])) fields.push(key);
