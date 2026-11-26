@@ -48,10 +48,11 @@ Paths in *Map* and *Gotchas* are relative to `plugin/`, the directory users inst
 - `.claude-plugin/plugin.json` — the manifest. Its `description` is copied word for word into
   the marketplace entry in `johantor/plugins`, so a change here is a change there.
 - `bin/persona-browser` — a `sh` wrapper that checks for Node, then runs
-  `lib/persona-browser.cjs`: the CLI and its daemon, one Playwright context per session id on a
-  socket in a `0700` temp directory. It enforces the allowlist, the block list and `allowWrites`
-  in one `context.route()`, and appends every action to `steps.jsonl`. A GET form is allowed
-  without `allowWrites`, so personas can search (operator decision, #9).
+  `lib/persona-browser.cjs`: the CLI (`check` needs no session) and its daemon, one Playwright
+  context per session id on a socket in a `0700` temp directory. It enforces the allowlist, the
+  block list and `allowWrites` in one `context.route()`, and appends every action to
+  `steps.jsonl`. A GET form is allowed without `allowWrites`, so personas can search (operator
+  decision, #9).
 - `agents/visitor.md` — one persona on one site. Tools `Bash`, `Read`, `Skill`; it preloads
   `persona-contract` (how to play and stay in bounds) and `report-schema` (the report layout).
   It hands its `report.md` back as text, and the caller saves it (*Gotchas*).
@@ -67,13 +68,18 @@ Paths in *Map* and *Gotchas* are relative to `plugin/`, the directory users inst
 - `agents/reporter.md` — merges a run's reports. Tools `Read`, `Skill`; it hands back
   `findings.json` and `summary.md` as text, and the runner saves them.
 - `commands/report.md` — `/personas:report [run-id]`: shows a run's summary, or re-renders it.
-- `bin/personas-check-findings` — runs `lib/check-findings.cjs`, which checks a findings file
-  against the schema. It supports only the keywords that schema uses and refuses any other, so a
-  schema change that needs more fails loudly.
+- `bin/personas-check` — `personas-check <findings|personas> <file>` runs
+  `lib/check-schema.cjs` against `schema/<name>.schema.json`. It supports only the keywords our
+  schemas use (local `$ref` included) and refuses any other, so a schema change that needs more
+  fails loudly.
+- `commands/init.md` — `/personas:init [url]`: runs `persona-browser check` (Node, Playwright,
+  chromium and webkit), interviews the operator, and writes `personas.json` from the starter set
+  inline in the command and `brief.md`. `tests/plugin.test.sh` validates that starter set.
+- `schema/personas.schema.json` — `personas.json`; `defaults` and each persona share their field
+  definitions through `$defs`.
 
-Planned, per #1, and added to this map by the PR that adds each: `commands/init.md` and
-`schema/personas.schema.json` (M4), `commands/diff.md`, `scripts/sweep.mjs` and
-`skills/migration-diff/` (M5).
+Planned, per #1, and added to this map by the PR that adds each: `commands/diff.md`,
+`scripts/sweep.mjs` and `skills/migration-diff/` (M5).
 
 ## Gotchas
 

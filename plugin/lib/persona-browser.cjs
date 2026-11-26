@@ -32,6 +32,7 @@ const NETWORK_PRESETS = {
 };
 
 const USAGE = `usage:
+  persona-browser check
   persona-browser start --session <id> --persona <personas.json> --persona-id <id> --run <dir> --url <base-url> [--brief <brief.md>]
   persona-browser look  --session <id>
   persona-browser act   --session <id> --ref <ref> --do click|hover|scroll|select [--value <v>]
@@ -456,6 +457,16 @@ function shutdown(s, server, sock) {
   s.browser.close().finally(() => process.exit(0));
 }
 
+// The dependency check /personas:init runs (#6): Node is checked in main, Playwright and its
+// browsers here, with the command that installs what is missing.
+function check() {
+  const pw = loadPlaywright();
+  const missing = ['chromium', 'webkit'].filter((name) => !fs.existsSync(pw[name].executablePath()));
+  process.stdout.write(`node ${process.version}: ok\nplaywright: ok\n`);
+  for (const name of ['chromium', 'webkit']) process.stdout.write(`${name}: ${missing.includes(name) ? 'missing' : 'ok'}\n`);
+  if (missing.length) throw new Error(`Playwright browsers are missing. Install them: npx playwright install ${missing.join(' ')}`);
+}
+
 // --- entry --------------------------------------------------------------------------------------
 
 async function main() {
@@ -473,6 +484,7 @@ async function main() {
   }
   const major = Number(process.versions.node.split('.')[0]);
   if (major < 20) throw new Error(`Node.js 20 or later is required; this is ${process.version}`);
+  if (command === 'check') return check();
   if (!['start', 'look', 'act', 'type', 'key', 'goto', 'stop'].includes(command)) throw new UsageError(command ? `unknown command: ${command}` : 'no command');
   await runClient(command, parseArgs(rest));
 }

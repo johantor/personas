@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/johantor/personas/plugin/schema/personas.schema.json",
+  "title": "personas.json",
+  "description": "Who browses: shared defaults and the personas. Browser fields map onto Playwright context options; the others guide the visitor agent.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "personas"],
+  "properties": {
+    "version": { "enum": [1] },
+    "defaults": { "$ref": "#/$defs/settings" },
+    "personas": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "goal"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[A-Za-z0-9_-][A-Za-z0-9._-]*$", "description": "Also the persona's run folder name." },
+          "name": { "type": "string" },
+          "background": { "type": "string" },
+          "goal": { "type": "string" },
+          "patience": { "$ref": "#/$defs/patience" },
+          "input": { "$ref": "#/$defs/input" },
+          "maxSteps": { "$ref": "#/$defs/maxSteps" },
+          "startPath": { "$ref": "#/$defs/startPath" },
+          "auth": { "type": "string", "description": "A Playwright storageState file, relative to personas.json." },
+          "allowWrites": { "type": "boolean" },
+          "device": { "$ref": "#/$defs/device" },
+          "viewport": { "$ref": "#/$defs/viewport" },
+          "locale": { "$ref": "#/$defs/locale" },
+          "timezone": { "$ref": "#/$defs/timezone" },
+          "colorScheme": { "$ref": "#/$defs/colorScheme" },
+          "reducedMotion": { "$ref": "#/$defs/reducedMotion" },
+          "browser": { "$ref": "#/$defs/browser" },
+          "network": { "$ref": "#/$defs/network" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "settings": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Fields every persona inherits unless it sets its own.",
+      "properties": {
+        "patience": { "$ref": "#/$defs/patience" },
+        "input": { "$ref": "#/$defs/input" },
+        "maxSteps": { "$ref": "#/$defs/maxSteps" },
+        "startPath": { "$ref": "#/$defs/startPath" },
+        "device": { "$ref": "#/$defs/device" },
+        "viewport": { "$ref": "#/$defs/viewport" },
+        "locale": { "$ref": "#/$defs/locale" },
+        "timezone": { "$ref": "#/$defs/timezone" },
+        "colorScheme": { "$ref": "#/$defs/colorScheme" },
+        "reducedMotion": { "$ref": "#/$defs/reducedMotion" },
+        "browser": { "$ref": "#/$defs/browser" },
+        "network": { "$ref": "#/$defs/network" }
+      }
+    },
+    "patience": { "enum": ["low", "medium", "high"] },
+    "input": { "enum": ["mouse", "touch", "keyboard"] },
+    "maxSteps": { "type": "integer", "minimum": 1 },
+    "startPath": { "type": "string", "pattern": "^/" },
+    "device": { "type": "string", "description": "A name from Playwright's device list, such as \"iPhone 15\"." },
+    "viewport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["width", "height"],
+      "properties": {
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "locale": { "type": "string", "pattern": "^[a-z]{2,3}(-[A-Z]{2})?$" },
+    "timezone": { "type": "string", "description": "An IANA time zone, such as Europe/Stockholm." },
+    "colorScheme": { "enum": ["light", "dark", "no-preference"] },
+    "reducedMotion": { "enum": ["reduce", "no-preference"] },
+    "browser": { "enum": ["chromium", "firefox", "webkit"] },
+    "network": { "enum": ["slow-3g", "fast-3g", "slow-4g"], "description": "Throttling; chromium only." }
+  }
+}
