@@ -32,6 +32,7 @@ const NETWORK_PRESETS = {
 };
 
 const USAGE = `usage:
+  persona-browser check
   persona-browser start --session <id> --persona <personas.json> --persona-id <id> --run <dir> --url <base-url> [--brief <brief.md>]
   persona-browser look  --session <id>
   persona-browser act   --session <id> --ref <ref> --do click|hover|scroll|select [--value <v>]
@@ -253,8 +254,8 @@ async function runDaemon(sock, config) {
   if (hostsFile(sock)) fs.writeFileSync(hostsFile(sock), config.allowedHosts.join('\n') + '\n');
   touch();
   s = await openSession(config).catch((err) => {
-    if (!/Executable doesn't exist/.test(err.message)) throw err;
-    throw new Error('Playwright browsers are missing. Install them: npx playwright install chromium webkit');
+    if (!/Executable doesn't exist|missing dependencies/.test(err.message)) throw err;
+    throw new Error('the browser cannot start; persona-browser check names the fix');
   });
   const out = await handle(s, { command: 'goto', opts: { url: config.startUrl } }).catch((err) => `start page failed: ${err.message}`);
   return [
@@ -456,6 +457,27 @@ function shutdown(s, server, sock) {
   s.browser.close().finally(() => process.exit(0));
 }
 
+// The dependency check /personas:init runs (#6): Node is checked in main, Playwright and its
+// browsers here. Each browser is launched once, because an installed browser can still lack
+// the system libraries it needs; the command that fixes each problem is printed.
+async function check() {
+  const pw = loadPlaywright();
+  process.stdout.write(`node ${process.version}: ok\nplaywright: ok\n`);
+  const fixes = [];
+  for (const name of ['chromium', 'webkit']) {
+    const problem = await pw[name].launch().then((b) => b.close(), (err) => launchProblem(err, name));
+    process.stdout.write(`${name}: ${problem ? problem.status : 'ok'}\n`);
+    if (problem) fixes.push(problem.fix);
+  }
+  if (fixes.length) throw new Error(`a browser cannot start. Fix it: ${fixes.join(' && ')}`);
+}
+
+function launchProblem(err, name) {
+  if (/Executable doesn't exist/.test(err.message)) return { status: 'missing', fix: `npx playwright install ${name}` };
+  if (/missing dependencies/.test(err.message)) return { status: 'missing system libraries', fix: `npx playwright install-deps ${name}` };
+  return { status: `cannot start: ${err.message.split('\n')[0]}`, fix: `npx playwright install --with-deps ${name}` };
+}
+
 // --- entry --------------------------------------------------------------------------------------
 
 async function main() {
@@ -473,6 +495,7 @@ async function main() {
   }
   const major = Number(process.versions.node.split('.')[0]);
   if (major < 20) throw new Error(`Node.js 20 or later is required; this is ${process.version}`);
+  if (command === 'check') return await check();
   if (!['start', 'look', 'act', 'type', 'key', 'goto', 'stop'].includes(command)) throw new UsageError(command ? `unknown command: ${command}` : 'no command');
   await runClient(command, parseArgs(rest));
 }

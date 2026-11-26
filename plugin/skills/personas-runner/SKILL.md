@@ -7,7 +7,7 @@ description: How a personas runner fans out a run — reads the personas and the
 
 The runner is the session that launches the agents: the main session in `/personas:run`, or an
 orchestrator such as crew's `lead`. It needs Bash (for `persona-browser` and
-`personas-check-findings`), Read, Write and the Agent tool. Subagents return text; the runner
+`personas-check`), Read, Write and the Agent tool. Subagents return text; the runner
 writes every file.
 
 ## Inputs
@@ -46,7 +46,7 @@ writes every file.
    in the run, with the `remaining:` line of each that was not `none`, and the error of each
    whose start failed). Save its `json` block to `<run>/findings.json` and its `markdown` block
    to `<run>/summary.md`, again at paths you build yourself.
-6. **Check** `personas-check-findings <run>/findings.json`. If it fails, give its errors to the
+6. **Check** `personas-check findings <run>/findings.json`. If it fails, give its errors to the
    reporter once and save the corrected hand-back. If it fails again, keep the file and say so.
 7. **Report** the path of `summary.md`, the number of findings by severity, and every
    `remaining:` line that was not `none`.

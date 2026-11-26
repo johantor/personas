@@ -187,6 +187,10 @@ pb key --session t-brief --key Tab
 assert_refused "a step past maxSteps" "maxSteps (2) reached"
 pb stop --session t-brief
 
+# check reports Node, Playwright and each browser; chromium is installed wherever this suite runs.
+pb check
+if [[ "$_out" == *"playwright: ok"* && "$_out" == *"chromium: ok"* && "$_out" == *"webkit: "* ]]; then _pass; else _fail "check must report playwright and both browsers: $_out"; fi
+
 # Input errors fail before a daemon starts.
 pb start --session t-x --persona "$WORK/.personas/personas.json" --persona-id nobody --run "$WORK/run" --url "$BASE/"
 if [[ "$_status" -ne 0 && "$_out" == *'no persona "nobody"'* ]]; then _pass; else _fail "an unknown persona must fail: $_out"; fi
