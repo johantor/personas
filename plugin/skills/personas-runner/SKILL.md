@@ -1,13 +1,13 @@
 ---
 name: personas-runner
-description: How a personas runner fans out a run — reads the personas and the brief, estimates the cost, starts one persona-browser session per visitor, launches visitors in batches, saves their reports, then has the reporter merge them. Load in /personas:run, or in any orchestrator (such as crew's lead) that runs personas.
+description: How a personas runner fans out a run — reads the personas and the brief, estimates the cost, starts one persona-browser session per visitor, launches visitors in batches, saves their reports, then has the reporter merge them; and how a diff run sweeps an old and a new site first. Load in /personas:run and /personas:diff, or in any orchestrator (such as crew's lead) that runs personas.
 ---
 
 # Running personas
 
 The runner is the session that launches the agents: the main session in `/personas:run`, or an
-orchestrator such as crew's `lead`. It needs Bash (for `persona-browser` and
-`personas-check`), Read, Write and the Agent tool. Subagents return text; the runner
+orchestrator such as crew's `lead`. It needs Bash (for `persona-browser`,
+`personas-check` and, in a diff run, `personas-sweep`), Read, Write and the Agent tool. Subagents return text; the runner
 writes every file.
 
 ## Inputs
@@ -50,6 +50,25 @@ writes every file.
    reporter once and save the corrected hand-back. If it fails again, keep the file and say so.
 7. **Report** the path of `summary.md`, the number of findings by severity, and every
    `remaining:` line that was not `none`.
+
+## Diff runs
+
+`/personas:diff` compares an old and a new site. Its inputs are `--old <url>`, `--new <url>`,
+`--sitemap <url>` or `--urls <file>` (default: the old site's `/sitemap.xml`), `--only` and
+`--batch`. Load the `migration-diff` skill. The steps above change as follows:
+
+- **Sweep first**, after the run folder exists: `personas-sweep --old <old> --new <new> --out
+  .personas/runs/<run-id> [--sitemap <url> | --urls <file>]`. It writes `sweep.json`,
+  `sweep-changes.json` and the screenshots under `sweep/`. Print its summary line. If it fails,
+  say why and go on with the personas.
+- **The estimate** counts every persona twice: once per site.
+- **Each persona runs on both sites**, as two visitors in the same batch. A batch of N holds N
+  visitors. The sessions are `<run-id>-<n>-old` and `<run-id>-<n>-new`, started with `--run
+  .personas/runs/<run-id>/old --url <old>` and `--run .personas/runs/<run-id>/new --url <new>`.
+  Each visitor gets the `run` and `url` of its own site, and its report goes to
+  `<run>/old/<persona>/report.md` or `<run>/new/<persona>/report.md`.
+- **Merge** with one `personas:reporter` and the inputs `mode: diff`, `run`, `old`, `new` and
+  `personas` (with notes for both sites).
 
 ## Rules
 
