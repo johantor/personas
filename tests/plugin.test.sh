@@ -28,6 +28,7 @@ check "not an array" fail "$(write object "$finding")" "expected array"
 check "a bad severity" fail "$(write sev "[$(jq -c '.severity = "critical"' <<<"$finding")]")" "is not one of"
 check "a missing field" fail "$(write missing "[$(jq -c 'del(.evidence)' <<<"$finding")]")" "missing evidence"
 check "an unknown field" fail "$(write extra "[$(jq -c '.score = 3' <<<"$finding")]")" "unknown field score"
+check "an inherited name as a field" fail "$(write proto "[$(jq -c '.constructor = 3 | .toString = 3' <<<"$finding")]")" "unknown field constructor"
 check "a bad id" fail "$(write id "[$(jq -c '.id = "7"' <<<"$finding")]")" "does not match"
 check "an empty seenBy" fail "$(write seen "[$(jq -c '.seenBy = []' <<<"$finding")]")" "at least 1"
 check "a number for a string" fail "$(write type "[$(jq -c '.url = 3' <<<"$finding")]")" "expected string"
@@ -39,7 +40,7 @@ check "no such file" fail "$WORK/nothing.json" "not valid JSON"
 field() { awk -v k="$2" 'NR == 1 && $0 == "---" { on = 1; next } on && $0 == "---" { exit } on && index($0, k ": ") == 1 { print substr($0, length(k) + 3) }' "$1"; }
 
 if [ "$(field "$PLUGIN/agents/visitor.md" tools)" = "Bash, Read, Skill" ]; then _pass; else _fail "the visitor's tools must be Bash, Read, Skill"; fi
-if [ "$(field "$PLUGIN/agents/reporter.md" tools)" = "Read, Glob, Skill" ]; then _pass; else _fail "the reporter's tools must be Read, Glob, Skill"; fi
+if [ "$(field "$PLUGIN/agents/reporter.md" tools)" = "Read, Skill" ]; then _pass; else _fail "the reporter's tools must be Read, Skill"; fi
 for f in "$PLUGIN"/agents/*.md "$PLUGIN"/commands/*.md "$PLUGIN"/skills/*/SKILL.md; do
   if [ -n "$(field "$f" description)" ]; then _pass; else _fail "$f has no description"; fi
 done

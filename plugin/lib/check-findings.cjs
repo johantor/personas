@@ -25,7 +25,8 @@ function check(value, schema, at, errors) {
   if (typeOf(value) === 'object') {
     for (const key of schema.required || []) if (!(key in value)) errors.push(`${at}: missing ${key}`);
     for (const [key, v] of Object.entries(value)) {
-      if (schema.properties?.[key]) check(v, schema.properties[key], `${at}.${key}`, errors);
+      // Own properties only: an inherited name such as constructor is an unknown field.
+      if (schema.properties && Object.hasOwn(schema.properties, key)) check(v, schema.properties[key], `${at}.${key}`, errors);
       else if (schema.additionalProperties === false) errors.push(`${at}: unknown field ${key}`);
     }
   }

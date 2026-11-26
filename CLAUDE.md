@@ -64,7 +64,7 @@ Paths in *Map* and *Gotchas* are relative to `plugin/`, the directory users inst
   sets the allowlist.
 - `commands/run.md` — `/personas:run [url] [--only id,id] [--batch N]`; it loads
   `skills/personas-runner/`, the fan-out that any runner follows (crew's `lead` too).
-- `agents/reporter.md` — merges a run's reports. Tools `Read`, `Glob`, `Skill`; it hands back
+- `agents/reporter.md` — merges a run's reports. Tools `Read`, `Skill`; it hands back
   `findings.json` and `summary.md` as text, and the runner saves them.
 - `commands/report.md` — `/personas:report [run-id]`: shows a run's summary, or re-renders it.
 - `bin/personas-check-findings` — runs `lib/check-findings.cjs`, which checks a findings file
