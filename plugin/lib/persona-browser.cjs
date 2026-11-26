@@ -8,21 +8,11 @@ const net = require('node:net');
 const os = require('node:os');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
-const { createRequire } = require('node:module');
+const { DEFAULT_BLOCKED_HOSTS, hostMatches, loadPlaywright } = require('./browser-common.cjs');
 
-const INSTALL_HINT = 'npm install -D playwright && npx playwright install chromium webkit';
 const IDLE_MS = 30 * 60 * 1000; // a visitor that never calls stop must not leave a browser behind
 const ACTION_TIMEOUT_MS = 10_000;
 const NAV_TIMEOUT_MS = 30_000;
-
-// Analytics and tag hosts, blocked so runs don't skew the site's statistics. A brief adds more
-// under "## Blocked hosts". An entry matches the host and its subdomains.
-const DEFAULT_BLOCKED_HOSTS = [
-  'google-analytics.com', 'analytics.google.com', 'googletagmanager.com', 'doubleclick.net',
-  'googleadservices.com', 'cdn.optimizely.com', 'logx.optimizely.com', 'hotjar.com', 'hotjar.io',
-  'clarity.ms', 'connect.facebook.net', 'segment.com', 'segment.io', 'mixpanel.com',
-  'plausible.io', 'matomo.cloud', 'siteimproveanalytics.com', 'siteimproveanalytics.io',
-];
 
 // Chrome DevTools-style presets; latency in ms, throughput in bytes per second.
 const NETWORK_PRESETS = {
@@ -188,19 +178,7 @@ function briefList(brief, heading) {
   return items;
 }
 
-function hostMatches(host, entries) {
-  return entries.some((e) => host === e || host.endsWith('.' + e));
-}
-
 // --- daemon -------------------------------------------------------------------------------------
-
-function loadPlaywright() {
-  // The user's project first, then the normal lookup (beside the plugin, NODE_PATH, global).
-  for (const req of [createRequire(path.join(process.cwd(), 'package.json')), require]) {
-    try { return req('playwright'); } catch { /* try the next location */ }
-  }
-  throw new Error(`Playwright is not installed. Install it: ${INSTALL_HINT}`);
-}
 
 // Listening is the lock on the session id: a second daemon gets EADDRINUSE. A socket nobody
 // answers on was left by a crash, so it is removed once and the listen retried.

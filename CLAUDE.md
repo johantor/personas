@@ -77,9 +77,18 @@ Paths in *Map* and *Gotchas* are relative to `plugin/`, the directory users inst
   inline in the command and `brief.md`. `tests/plugin.test.sh` validates that starter set.
 - `schema/personas.schema.json` — `personas.json`; `defaults` and each persona share their field
   definitions through `$defs`.
-
-Planned, per #1, and added to this map by the PR that adds each: `commands/diff.md`,
-`scripts/sweep.mjs` and `skills/migration-diff/` (M5).
+- `commands/diff.md` — `/personas:diff --old <url> --new <url>`: the runner skill's *Diff runs*.
+  It sweeps first, then runs each persona on both sites into `<run>/old/` and `<run>/new/`, and
+  the reporter merges both with the sweep in diff mode.
+- `bin/personas-sweep` — runs `scripts/sweep.mjs`, the diff phase with no model calls. It writes
+  `sweep.json`, plus `sweep-changes.json` with only the rows that differ, which is what the
+  reporter reads. The browser computes the pixel diff on a canvas, so no image library is needed.
+  It fetches sitemaps only from the two sites' hosts, and refuses a page that redirects off its
+  own site, as `persona-browser` refuses an off-allowlist host.
+- `skills/migration-diff/` — what a meaningful difference is, what to ignore, and the Optimizely
+  specifics. The reporter preloads it.
+- `lib/browser-common.cjs` — the analytics block list, host matching and the Playwright loader,
+  shared by `persona-browser` and the sweep so both refuse the same hosts.
 
 ## Gotchas
 

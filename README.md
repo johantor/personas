@@ -9,8 +9,8 @@
 browses the site in its own isolated browser as a Claude Code agent and reports what broke, with
 the steps and screenshots. A reporter merges the reports into one summary.
 
-> **Status: in development.** `/personas:init`, `/personas:run` and `/personas:report` work;
-> `/personas:diff` is next. The design and milestones are in
+> **Status: in development.** All four commands work; `/personas:diff` still needs validation
+> on a real Optimizely migration. The design and milestones are in
 > [#1](https://github.com/johantor/personas/issues/1). It is not in the `johantor` marketplace
 > until v1 is done.
 
@@ -29,7 +29,7 @@ the steps and screenshots. A reporter merges the reports into one summary.
 |---|---|
 | `/personas:init [url]` | Checks Node and the Playwright browsers, interviews you about the site, then writes `.personas/personas.json` and `.personas/brief.md`. |
 | `/personas:run [url] [--only id,id] [--batch N]` | Runs the personas against one site, 6 at a time by default, and writes `summary.md` and `findings.json` in `.personas/runs/<run-id>/`. Without a URL, it takes the `URL:` line under `## Site` in `brief.md`. |
-| `/personas:diff --old <url> --new <url>` | Planned. A scripted page sweep of both sites with no model calls, then each persona's tasks on both. |
+| `/personas:diff --old <url> --new <url> [--sitemap <url> \| --urls <file>]` | A scripted page sweep of both sites with no model calls, then each persona's tasks on both. |
 | `/personas:report [run-id]` | Shows the summary of a run, the latest by default, and re-renders it from the reports when it is missing. |
 
 ## The browser CLI
@@ -65,6 +65,7 @@ A host in either list also matches its subdomains.
 - WebSocket messages are not checked by the write refusal.
 - A visitor can drive another visitor's session if it names that session id. The sessions still
   share no cookies, and both stay on their allowlists.
+- The sweep loads pages without a login, so it compares only what an anonymous visitor sees.
 - The visitor cannot type `& | ; $ < > ( ) \` or a backtick: `visitor-guard` refuses them in its
   commands, so it types a close variant.
 

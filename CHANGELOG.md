@@ -5,6 +5,13 @@ All notable changes to the `personas` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-11-26
+
+### Added
+
+- `/personas:diff`, which sweeps an old and a new site with `personas-sweep` (no model calls), then runs each persona on both, and merges both with the sweep in a diff report (#13).
+- The `migration-diff` skill, with the Optimizely specifics, and a diff mode in the reporter (#13).
+
 ## [0.5.0] - 2026-11-26
 
 ### Added

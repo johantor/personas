@@ -15,14 +15,14 @@ applies here.
 ## Repository layout
 
 - `plugin/`: the plugin. Today it holds the manifest (`.claude-plugin/plugin.json`), an empty
-  the `persona-browser` CLI and the schema checker (`bin/` and `lib/`), the `visitor` and
-  `reporter` agents, the `init`, `run` and `report` commands, three skills, two schemas and two
-  hooks; the milestones in #1 add the rest (CLAUDE.md, *Map*). `README.md` and
+  the `persona-browser` CLI, the schema checker and the sweep (`bin/`, `lib/` and `scripts/`),
+  the `visitor` and `reporter` agents, the `init`, `run`, `diff` and `report` commands, four
+  skills, two schemas and two hooks (CLAUDE.md, *Map*). `README.md` and
   `CHANGELOG.md` stay at the root.
 - `tests/`: `release.test.sh` for the release scripts, `persona-browser.test.sh` for the CLI,
-  `hooks.test.sh` for the hooks and `plugin.test.sh` for the schemas, the checker and the
-  frontmatter, with the harness in `lib.sh` (a copy of crew's) and a local test site in
-  `fixtures/site.cjs`.
+  `sweep.test.sh` for the sweep, `hooks.test.sh` for the hooks and `plugin.test.sh` for the
+  schemas, the checker and the frontmatter, with the harness in `lib.sh` (a copy of crew's) and
+  the local test sites in `fixtures/`.
 - `scripts/`: repo tooling, never part of the plugin's behaviour: `check-changelog.sh` (the
   release gate) and `release-notes.sh` (used by `auto-release.yml`).
 - `docs/`: the site on GitHub Pages. `style.css` is an exact copy of crew's `docs/style.css`;
@@ -40,9 +40,10 @@ Run what CI runs (`.github/workflows/validate.yml`) before you push:
 
 ```bash
 shellcheck tests/*.sh scripts/*.sh plugin/bin/* plugin/hooks/*.sh
-for f in plugin/lib/*.cjs tests/fixtures/*.cjs; do node --check "$f"; done
+for f in plugin/lib/*.cjs plugin/scripts/*.mjs tests/fixtures/*.cjs; do node --check "$f"; done
 bash tests/release.test.sh          # the changelog gate and the release notes
 bash tests/persona-browser.test.sh  # drives the CLI against a local site
+bash tests/sweep.test.sh            # sweeps an old and a new local site
 bash tests/hooks.test.sh            # pipes payloads into the hooks
 bash tests/plugin.test.sh           # the schemas, the checker and the frontmatter
 scripts/check-changelog.sh main     # a change under plugin/ => version bump

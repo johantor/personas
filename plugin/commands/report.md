@@ -12,4 +12,8 @@ Show a personas run summary. Arguments: `$ARGUMENTS`
    with a `steps.jsonl`, and the URL is the `- Site:` line of a saved report, not the current
    brief, which may name another site. Launch `personas:reporter` with `run`, `url` and
    `personas`, then save, check and report as steps 5 to 7 of the `personas-runner` skill say.
+   A diff run has `old/` and `new/` folders: take the personas from both folders, and the two
+   URLs from the `old` and `new` fields of `sweep.json`, or, when the sweep failed and wrote
+   none, from the `- Site:` line of a report in each folder. Launch the reporter with
+   `mode: diff`, `run`, `old`, `new` and `personas`.
 4. With neither, say that the run has no reports.
