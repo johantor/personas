@@ -42,6 +42,7 @@ check "the init starter set" ok "$WORK/starter.json" "" personas
 persona='{"version":1,"defaults":{"maxSteps":40,"locale":"sv-SE"},"personas":[{"id":"anna","name":"Anna","goal":"Book","viewport":{"width":390,"height":844}}]}'
 p() { write "$1" "$(jq -c "$2" <<<"$persona")"; }
 check "a minimal personas file" ok "$(p min .)" "" personas
+check "BCP 47 locales" ok "$(p loc '.defaults.locale = "es-419" | .personas[0].locale = "zh-Hant-TW"')" "" personas
 check "a missing goal" fail "$(p goal 'del(.personas[0].goal)')" "missing goal" personas
 check "an unknown browser" fail "$(p br '.personas[0].browser = "edge"')" "is not one of" personas
 check "an unknown persona field" fail "$(p zoom '.personas[0].zoom = 2')" "unknown field zoom" personas
