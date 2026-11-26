@@ -62,10 +62,18 @@ Paths in *Map* and *Gotchas* are relative to `plugin/`, the directory users inst
   `persona-browser` command (`look`, `act`, `type`, `key` or `goto`), with no chaining,
   substitution or redirection. The runner starts and stops each session, because `start --url`
   sets the allowlist.
+- `commands/run.md` — `/personas:run [url] [--only id,id] [--batch N]`; it loads
+  `skills/personas-runner/`, the fan-out that any runner follows (crew's `lead` too).
+- `agents/reporter.md` — merges a run's reports. Tools `Read`, `Glob`, `Skill`; it hands back
+  `findings.json` and `summary.md` as text, and the runner saves them.
+- `commands/report.md` — `/personas:report [run-id]`: shows a run's summary, or re-renders it.
+- `bin/personas-check-findings` — runs `lib/check-findings.cjs`, which checks a findings file
+  against the schema. It supports only the keywords that schema uses and refuses any other, so a
+  schema change that needs more fails loudly.
 
-Planned, per #1, and added to this map by the PR that adds each: `commands/run.md`,
-`commands/report.md`, `agents/reporter.md` and `skills/personas-runner/` (M3), `commands/init.md` and `schema/personas.schema.json` (M4),
-`commands/diff.md`, `scripts/sweep.mjs` and `skills/migration-diff/` (M5).
+Planned, per #1, and added to this map by the PR that adds each: `commands/init.md` and
+`schema/personas.schema.json` (M4), `commands/diff.md`, `scripts/sweep.mjs` and
+`skills/migration-diff/` (M5).
 
 ## Gotchas
 
@@ -75,6 +83,7 @@ Planned, per #1, and added to this map by the PR that adds each: `commands/run.m
 - `persona-browser` blocks service workers, because their requests bypass `context.route()` and
   so would bypass the allowlist and the write refusal.
 - Claude Code refuses a subagent's Write of a report file ("Subagents should return findings as
-  text"). So the visitor has no `Write` tool and hands its report back; the runner saves it.
+  text"); the guard also matches source files with `report` in the name. So the visitor and the
+  reporter have no `Write` tool and hand their output back; the runner saves it.
 - `persona-browser` counts steps and refuses past `maxSteps`, so the limit does not depend on the
   model. The visitor's `maxTurns: 100` is only a backstop.

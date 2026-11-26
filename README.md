@@ -22,14 +22,14 @@ the steps and screenshots. A reporter merges the reports into one summary.
 - **Reports, never fixes.** A persona reads pages and writes findings. It does not change code,
   and it submits no form unless the persona allows writes.
 
-## Planned commands
+## Commands
 
 | Command | What it does |
 |---|---|
-| `/personas:init` | Interviews you about the site, then writes `.personas/personas.json` and `.personas/brief.md`. |
-| `/personas:run [url]` | Runs the personas against one site, in parallel batches. |
-| `/personas:diff --old <url> --new <url>` | A scripted page sweep of both sites with no model calls, then each persona's tasks on both. |
-| `/personas:report [run-id]` | Re-opens the merged summary of a run. |
+| `/personas:init` | Planned. Interviews you about the site, then writes `.personas/personas.json` and `.personas/brief.md`. |
+| `/personas:run [url] [--only id,id] [--batch N]` | Runs the personas against one site, 6 at a time by default, and writes `summary.md` and `findings.json` in `.personas/runs/<run-id>/`. Without a URL, it takes the `URL:` line under `## Site` in `brief.md`. |
+| `/personas:diff --old <url> --new <url>` | Planned. A scripted page sweep of both sites with no model calls, then each persona's tasks on both. |
+| `/personas:report [run-id]` | Shows the summary of a run, the latest by default, and re-renders it from the reports when it is missing. |
 
 ## The browser CLI
 

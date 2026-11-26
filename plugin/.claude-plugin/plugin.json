@@ -1,6 +1,6 @@
 {
   "name": "personas",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "license": "Apache-2.0",
   "description": "Persona-driven website testing for Claude Code: each visitor you define in personas.json browses your site in its own isolated browser and reports what broke, with steps and screenshots. Compares an old and a new site after a migration or upgrade, and runs locally against localhost and staging.",
   "author": {

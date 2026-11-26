@@ -15,11 +15,12 @@ applies here.
 ## Repository layout
 
 - `plugin/`: the plugin. Today it holds the manifest (`.claude-plugin/plugin.json`), an empty
-  the `persona-browser` CLI (`bin/` and `lib/`), the `visitor` agent, its two skills, the findings
-  schema and two hooks; the milestones in #1 add the rest (CLAUDE.md, *Map*). `README.md` and
+  the `persona-browser` CLI and the findings checker (`bin/` and `lib/`), the `visitor` and
+  `reporter` agents, the `run` and `report` commands, three skills, the findings schema and two
+  hooks; the milestones in #1 add the rest (CLAUDE.md, *Map*). `README.md` and
   `CHANGELOG.md` stay at the root.
-- `tests/`: `release.test.sh` for the release scripts, `persona-browser.test.sh` for the CLI and
-  `hooks.test.sh` for the hooks,
+- `tests/`: `release.test.sh` for the release scripts, `persona-browser.test.sh` for the CLI,
+  `hooks.test.sh` for the hooks and `plugin.test.sh` for the checker and the frontmatter,
   with the harness in `lib.sh` (a copy of crew's) and a local test site in `fixtures/site.cjs`.
 - `scripts/`: repo tooling, never part of the plugin's behaviour: `check-changelog.sh` (the
   release gate) and `release-notes.sh` (used by `auto-release.yml`).
@@ -37,11 +38,12 @@ applies here.
 Run what CI runs (`.github/workflows/validate.yml`) before you push:
 
 ```bash
-shellcheck tests/*.sh scripts/*.sh plugin/bin/persona-browser plugin/hooks/*.sh
+shellcheck tests/*.sh scripts/*.sh plugin/bin/* plugin/hooks/*.sh
 for f in plugin/lib/*.cjs tests/fixtures/*.cjs; do node --check "$f"; done
 bash tests/release.test.sh          # the changelog gate and the release notes
 bash tests/persona-browser.test.sh  # drives the CLI against a local site
 bash tests/hooks.test.sh            # pipes payloads into the hooks
+bash tests/plugin.test.sh           # the findings checker and the frontmatter
 scripts/check-changelog.sh main     # a change under plugin/ => version bump
 ```
 
