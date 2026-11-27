@@ -18,7 +18,8 @@ it has not been run in Azure DevOps.
 ## How it works
 
 - **Run**: `claude -p` runs `/personas:run` headless. `--allowedTools` limits it to what a run
-  needs, as in the README's *Demo*.
+  needs; `Edit(.personas/runs/**)` is the only write it allows, and that rule covers `Write`
+  too. Bare `Write` would allow writes anywhere in the checkout.
 - **Evidence**: `.personas/runs/` is published as the `personas-run` artifact, so each work item
   names screenshot paths inside it.
 - **Work items**: a script step with no model calls reads `findings.json`, checks it against the

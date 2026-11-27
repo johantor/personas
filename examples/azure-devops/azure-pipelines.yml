@@ -36,7 +36,7 @@ steps:
   - script: |
       set -euo pipefail
       claude -p --plugin-dir "$(Agent.TempDirectory)/personas/plugin" \
-        --allowedTools "Agent" "Read" "Glob" "Skill" "Write" "Edit(.personas/**)" \
+        --allowedTools "Agent" "Read" "Glob" "Skill" "Edit(.personas/runs/**)" \
           "Bash(persona-browser *)" "Bash(personas-check *)" "Bash(mkdir *)" "Bash(date *)" "Bash(ls *)" \
         "/personas:run $(STAGING_URL)" < /dev/null
     displayName: Run the personas
@@ -65,7 +65,8 @@ steps:
         severity="$(jq -r .severity <<<"$f")"
         case "$severity" in blocker | major) type=Bug ;; *) continue ;; esac # file minor and note too by adding a type
         title="[personas] $severity: $(jq -r '.actual' <<<"$f" | cut -c1-120)"
-        body="$(jq -r '"<p><b>Page:</b> \(.url)</p><p><b>Steps:</b> \(.steps | join(" → "))</p><p><b>Expected:</b> \(.expected)</p><p><b>Actual:</b> \(.actual)</p><p><b>Seen by:</b> \(.seenBy | join(", ")); <b>evidence</b> in the personas-run artifact: \(.evidence | join(", "))</p>"' <<<"$f")"
+        # @html escapes each value: a finding can quote markup such as <h1>.
+        body="$(jq -r '@html "<p><b>Page:</b> \(.url)</p><p><b>Steps:</b> \(.steps | join(" → "))</p><p><b>Expected:</b> \(.expected)</p><p><b>Actual:</b> \(.actual)</p><p><b>Seen by:</b> \(.seenBy | join(", ")); <b>evidence</b> in the personas-run artifact: \(.evidence | join(", "))</p>"' <<<"$f")"
         az boards work-item create --type "$type" --title "$title" --description "$body" \
           --fields "System.Tags=personas; $fp" -o tsv --query id
       done
