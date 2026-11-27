@@ -40,7 +40,7 @@ needs Node 20+ and Playwright: `npm install -D playwright && npx playwright inst
 ```bash
 persona-browser start --session a --persona .personas/personas.json --persona-id anna \
   --run .personas/runs/r1 --url http://localhost:3000
-persona-browser look --session a                    # screenshot path + accessibility tree with refs
+persona-browser look --session a                    # screenshot, accessibility tree with refs, checks
 persona-browser act  --session a --ref e12 --do click
 persona-browser type --session a --ref e7 --text "opening hours" --submit
 persona-browser stop --session a                    # also lists the blocked hosts
@@ -56,6 +56,37 @@ action goes to `<run>/<persona-id>/steps.jsonl`. The CLI refuses:
   search, is sent.
 
 A host in either list also matches its subdomains.
+
+## Demo
+
+`demo/` is a small museum site with 11 planted bugs and four starter personas; the answer key is
+`demo/EXPECTED.md`. To run it, start the site, then run the personas from the `demo/` folder:
+
+```bash
+node demo/site.cjs &            # http://localhost:4400/
+cd demo && claude --plugin-dir ../plugin
+> /personas:run
+```
+
+The v1 acceptance runs, each one `/personas:run` with all four personas in one batch and at
+most 20 steps each:
+
+| Measure | Run 1 (v0.6.0) | Run 2 (v0.7.0) |
+|---|---|---|
+| Planted bugs found | 6 of 11 | 10 of 11 |
+| Missed | search, contrast, alt text, phone overflow, slow page | phone overflow on `/exhibitions` |
+| Other real defects found | 3 | 4 |
+| Wall time | 3 min 4 s | 2 min 58 s |
+| Output tokens | 30,151 | 38,027 |
+| Cache reads and writes | 1,584,470 and 172,756 | 1,852,948 and 184,471 |
+| Cost | $1.38 ($0.83 Opus runner, $0.56 Sonnet visitors and reporter) | $1.61 ($0.99 and $0.62) |
+
+Run 1 missed what no persona's goal led to (search) and what the accessibility tree does not
+show. For run 2, `look` added its `checks:` (load time, overflow, alt text, contrast) and the
+desktop persona's goal starts with the site search. Its one miss is a page the phone persona
+never opened; the same kind of overflow on the home page, which was not planted, it did report.
+The other real defects: the booking link hidden from the "book from the menu" text, Swedish
+navigation that leads to English pages, no skip link, and in run 2 the home page overflow.
 
 ## Known gaps
 

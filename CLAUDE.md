@@ -48,8 +48,9 @@ Paths in *Map* and *Gotchas* are relative to `plugin/`, the directory users inst
 - `.claude-plugin/plugin.json` — the manifest. Its `description` is copied word for word into
   the marketplace entry in `johantor/plugins`, so a change here is a change there.
 - `bin/persona-browser` — a `sh` wrapper that checks for Node, then runs
-  `lib/persona-browser.cjs`: the CLI (`check` needs no session) and its daemon, one Playwright
-  context per session id on a socket in a `0700` temp directory. It enforces the allowlist, the
+  `lib/persona-browser.cjs`: the CLI (`check` needs no session; `look` adds measured
+  `checks:`) and its daemon, one Playwright context per session id on a socket in a `0700` temp
+  directory. It enforces the allowlist, the
   block list and `allowWrites` in one `context.route()`, and appends every action to
   `steps.jsonl`. A GET form is allowed without `allowWrites`, so personas can search (operator
   decision, #9).

@@ -23,7 +23,7 @@ jobs:
       - name: Lint shell files
         run: shellcheck tests/*.sh scripts/*.sh plugin/bin/* plugin/hooks/*.sh
       - name: Check Node syntax
-        run: for f in plugin/lib/*.cjs plugin/scripts/*.mjs tests/fixtures/*.cjs; do node --check "$f"; done
+        run: for f in plugin/lib/*.cjs plugin/scripts/*.mjs tests/fixtures/*.cjs demo/*.cjs; do node --check "$f"; done
 
   manifest:
     permissions:

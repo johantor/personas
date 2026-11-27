@@ -177,6 +177,16 @@ if jq -e -s 'all(has("url") and has("action") and has("target") and has("result"
 if jq -e -s 'any(.action == "refused" and (.target | startswith("POST")))' "$steps" >/dev/null; then _pass; else _fail "steps.jsonl must log the refused fetch POST"; fi
 if jq -e -s 'any(.action == "act" and .target == "e999" and (.result | startswith("error")))' "$steps" >/dev/null; then _pass; else _fail "steps.jsonl must log the failed action"; fi
 
+# look's checks: what the accessibility tree does not show.
+pb goto --session t-erik --url /checks
+pb look --session t-erik
+for want in "checks:" "- load: " "wider than the screen: 2" "images without alt text: 1" 'low contrast text: "faint"'; do
+  if [[ "$_out" == *"$want"* ]]; then _pass; else _fail "look must report '$want': $_out"; fi
+done
+pb goto --session t-erik --url /
+pb look --session t-erik
+if [[ "$_out" == *"wider than the screen"* || "$_out" == *"low contrast"* ]]; then _fail "a plain page must report no problems: $_out"; else _pass; fi
+
 # maxSteps: the start page is step 1, so one more action fits; look is not a step.
 start t-brief brief
 pb key --session t-brief --key Tab
