@@ -57,6 +57,34 @@ action goes to `<run>/<persona-id>/steps.jsonl`. The CLI refuses:
 
 A host in either list also matches its subdomains.
 
+## Demo
+
+`demo/` is a small museum site with 11 planted bugs and four starter personas; the answer key is
+`demo/EXPECTED.md`. To run it, start the site, then run the personas from the `demo/` folder:
+
+```bash
+node demo/site.cjs &            # http://localhost:4400/
+cd demo && claude --plugin-dir ../plugin
+> /personas:run
+```
+
+The v1 acceptance run (v0.6.0, 2026-11-27, one run, all four personas in one batch, at most 20
+steps each):
+
+| Measure | Result |
+|---|---|
+| Planted bugs found | 6 of 11: the dead "Next" button, the unlabelled date field, the missing weekend hours, the 404 menu link, the keyboard-unreachable menu, the English text on the Swedish page |
+| Missed | the empty search results, the low-contrast prices, the image without alt text, the phone overflow, the 4-second page |
+| Other real defects found | 3: the booking link hidden from the "book from the menu" text, Swedish navigation that leads to English pages, no skip link |
+| Wall time | 3 min 4 s |
+| Tokens | 30,151 output, 1,584,470 cache reads, 172,756 cache writes, 112 uncached input |
+| Cost | $1.38: $0.83 for the runner session (Opus), $0.56 for the four visitors and the reporter (Sonnet) |
+
+No persona's goal needed search, so its bug went unseen. The other misses are visual or timing
+defects (contrast, overflow, load time) that the accessibility tree does not show, and the
+missing alt text, which the tree shows but no visitor reported. A persona whose goal needs
+search, or one told to check images and contrast, would catch more.
+
 ## Known gaps
 
 - A redirect from an allowed host to another host sends that one GET before `persona-browser`
