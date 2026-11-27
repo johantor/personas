@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "defaults": { "maxSteps": 20, "locale": "en-GB", "timezone": "Europe/Stockholm" },
+  "personas": [
+    {
+      "id": "first-timer-mobile",
+      "name": "A first visit on a phone",
+      "background": "Found the site from a search ad. Not technical. Impatient.",
+      "goal": "Book a visit for next Saturday",
+      "device": "iPhone 15",
+      "patience": "low",
+      "input": "touch"
+    },
+    {
+      "id": "returning-desktop",
+      "name": "A returning visitor on a laptop",
+      "background": "Has been before and wants to see the dinosaur exhibition again.",
+      "goal": "Find out where and until when the dinosaur exhibition is on",
+      "viewport": { "width": 1440, "height": 900 },
+      "browser": "chromium",
+      "patience": "medium"
+    },
+    {
+      "id": "keyboard-only",
+      "name": "A keyboard and screen reader user",
+      "background": "Uses the keyboard only and relies on headings, landmarks and focus order.",
+      "goal": "Book a visit for next Saturday",
+      "viewport": { "width": 1366, "height": 768 },
+      "browser": "chromium",
+      "input": "keyboard",
+      "reducedMotion": "reduce",
+      "patience": "high"
+    },
+    {
+      "id": "swedish-slow-network",
+      "name": "A Swedish visitor on a slow connection",
+      "background": "Reads Swedish first and browses on a weak mobile connection.",
+      "goal": "Find the opening hours and the ticket prices, in Swedish if possible",
+      "viewport": { "width": 1280, "height": 800 },
+      "browser": "chromium",
+      "locale": "sv-SE",
+      "network": "slow-3g",
+      "patience": "medium"
+    }
+  ]
+}

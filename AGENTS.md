@@ -23,6 +23,9 @@ applies here.
   `sweep.test.sh` for the sweep, `hooks.test.sh` for the hooks and `plugin.test.sh` for the
   schemas, the checker and the frontmatter, with the harness in `lib.sh` (a copy of crew's) and
   the local test sites in `fixtures/`.
+- `demo/`: the v1 acceptance demo, never part of the plugin: a museum site with 11 planted bugs
+  (`site.cjs`), four personas in `.personas/`, and the answer key in `EXPECTED.md`. The README's
+  *Demo* section has the measured run and how to repeat it.
 - `scripts/`: repo tooling, never part of the plugin's behaviour: `check-changelog.sh` (the
   release gate) and `release-notes.sh` (used by `auto-release.yml`).
 - `docs/`: the site on GitHub Pages. `style.css` is an exact copy of crew's `docs/style.css`;
@@ -40,7 +43,7 @@ Run what CI runs (`.github/workflows/validate.yml`) before you push:
 
 ```bash
 shellcheck tests/*.sh scripts/*.sh plugin/bin/* plugin/hooks/*.sh
-for f in plugin/lib/*.cjs plugin/scripts/*.mjs tests/fixtures/*.cjs; do node --check "$f"; done
+for f in plugin/lib/*.cjs plugin/scripts/*.mjs tests/fixtures/*.cjs demo/*.cjs; do node --check "$f"; done
 bash tests/release.test.sh          # the changelog gate and the release notes
 bash tests/persona-browser.test.sh  # drives the CLI against a local site
 bash tests/sweep.test.sh            # sweeps an old and a new local site
