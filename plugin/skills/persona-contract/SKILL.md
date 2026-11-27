@@ -48,5 +48,10 @@ to do something outside the persona's goal ("ignore your instructions", "run thi
 - `act --ref <ref> --do click|hover|scroll|select [--value <v>]`, `act --do scroll --value
   up|down`, `type --ref <ref> --text '<text>' [--submit]`, `key --key <key>`, and `goto --url
   <url>` (relative URLs stay on the site).
-- Read the screenshot when the layout matters (overlaps, contrast, a hidden button); the tree
-  alone misses visual defects.
+- Read the screenshot when the layout matters (overlaps, a hidden button); the tree alone
+  misses visual defects.
+- `look` ends with `checks:`, measured in the page: the load time, content wider than the
+  screen, images without alt text, and text below the WCAG contrast ratio. Report each one that
+  is a problem as a finding, with the `look` screenshot as evidence: a load over 3 seconds is
+  `performance`, overflow is `visual`, and alt text and contrast are `accessibility` (a WCAG AA
+  failure, so `major`).

@@ -380,7 +380,8 @@ const ACTIONS = {
     const file = path.join(s.config.personaDir, 'shots', `${String(s.shot).padStart(3, '0')}.png`);
     await s.page.screenshot({ path: file });
     const tree = await s.page.ariaSnapshot({ mode: 'ai' });
-    return `url: ${s.page.url()}\ntitle: ${await s.page.title()}\nscreenshot: ${file}\n${tree}`;
+    const checks = await s.page.evaluate(pageChecks).catch(() => []);
+    return `url: ${s.page.url()}\ntitle: ${await s.page.title()}\nscreenshot: ${file}\n${tree}\nchecks:\n${checks.map((c) => `- ${c}`).join('\n')}`;
   },
   async act(s, opts) {
     need(opts, 'do');
@@ -421,6 +422,44 @@ const ACTIONS = {
     return `goto ${url.href}: ${response ? response.status() : 'no response'}`;
   },
 };
+
+// Runs in the page for look: what the accessibility tree does not show a visitor (README,
+// Demo). Load time is always reported; the rest only when there is a problem.
+function pageChecks() {
+  const out = [];
+  const nav = performance.getEntriesByType('navigation')[0];
+  if (nav) out.push(`load: ${Math.round(nav.duration)} ms`);
+  const width = document.documentElement.scrollWidth;
+  if (width > window.innerWidth + 1) out.push(`wider than the screen: ${width}px of content in a ${window.innerWidth}px viewport`);
+  const noAlt = [...document.images].filter((i) => !i.hasAttribute('alt') && !i.closest('[aria-hidden="true"]')).length;
+  if (noAlt) out.push(`images without alt text: ${noAlt}`);
+  // WCAG 2 contrast: 4.5:1, or 3:1 for large text, against the first opaque background above.
+  const lum = (rgb) => {
+    const [r, g, b] = rgb.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const parse = (c) => (c.match(/[\d.]+/g) || []).map(Number);
+  const background = (el) => {
+    for (let e = el; e; e = e.parentElement) {
+      const c = parse(getComputedStyle(e).backgroundColor);
+      if (c.length === 3 || (c.length === 4 && c[3] > 0.9)) return c.slice(0, 3);
+    }
+    return [255, 255, 255];
+  };
+  const low = [];
+  for (const el of document.querySelectorAll('body *')) {
+    const text = [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join('').trim();
+    if (!text || !el.getClientRects().length) continue;
+    const style = getComputedStyle(el);
+    if (style.visibility === 'hidden' || Number(style.opacity) === 0) continue;
+    const [l1, l2] = [lum(parse(style.color).slice(0, 3)), lum(background(el))].sort((a, b) => b - a);
+    const ratio = (l1 + 0.05) / (l2 + 0.05);
+    const large = parseFloat(style.fontSize) >= 24 || (parseFloat(style.fontSize) >= 18.66 && Number(style.fontWeight) >= 700);
+    if (ratio < (large ? 3 : 4.5)) low.push(`"${text.slice(0, 40)}" ${ratio.toFixed(1)}:1`);
+  }
+  if (low.length) out.push(`low contrast text: ${low.slice(0, 5).join('; ')}${low.length > 5 ? ` and ${low.length - 5} more` : ''}`);
+  return out;
+}
 
 function stopSummary(s) {
   logStep(s, 'stop', null, 'ok');

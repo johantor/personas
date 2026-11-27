@@ -40,7 +40,7 @@ needs Node 20+ and Playwright: `npm install -D playwright && npx playwright inst
 ```bash
 persona-browser start --session a --persona .personas/personas.json --persona-id anna \
   --run .personas/runs/r1 --url http://localhost:3000
-persona-browser look --session a                    # screenshot path + accessibility tree with refs
+persona-browser look --session a                    # screenshot, accessibility tree with refs, checks
 persona-browser act  --session a --ref e12 --do click
 persona-browser type --session a --ref e7 --text "opening hours" --submit
 persona-browser stop --session a                    # also lists the blocked hosts

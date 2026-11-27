@@ -28,6 +28,9 @@ http.createServer((req, res) => {
   if (url.pathname === '/search') {
     return res.end(page('<form action="/found"><input name="q" aria-label="Query"></form><a href="/" target="_blank">New tab</a>'));
   }
+  if (url.pathname === '/checks') {
+    return res.end(page('<img src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" width="2000" height="10"><p style="color:#ddd">faint</p>'));
+  }
   if (url.pathname === '/submit') return res.end(page('<p>thanks</p>'));
   res.end(page(`<h1>Home</h1><p>cookie: ${req.headers.cookie || 'none'}</p>
 <script src="https://www.google-analytics.com/analytics.js"></script>

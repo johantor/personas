@@ -14,8 +14,8 @@
     {
       "id": "returning-desktop",
       "name": "A returning visitor on a laptop",
-      "background": "Has been before and wants to see the dinosaur exhibition again.",
-      "goal": "Find out where and until when the dinosaur exhibition is on",
+      "background": "Has been before and wants to see the dinosaur exhibition again. Uses the site search first.",
+      "goal": "Use the site search to find the dinosaur exhibition, then find where and until when it is on",
       "viewport": { "width": 1440, "height": 900 },
       "browser": "chromium",
       "patience": "medium"
