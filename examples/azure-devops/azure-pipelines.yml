@@ -1,0 +1,75 @@
+# An example, not tested in Azure DevOps: copy it into the repository of the site under test
+# and adapt it. README.md beside it has the setup, the permissions and the limits.
+#
+# It runs the personas in .personas/ against STAGING_URL each night, publishes the run as an
+# artifact, and files each new finding as a work item. Only the last step gets the Azure DevOps
+# token: the visitors read untrusted pages, so the agent step must not hold it.
+
+schedules:
+  - cron: "0 2 * * *"
+    displayName: Nightly personas run
+    branches:
+      include: [main]
+    always: true
+
+trigger: none
+
+pool:
+  vmImage: ubuntu-latest # a self-hosted agent for a server on an internal network
+
+variables:
+  STAGING_URL: https://staging.example.com/
+  PERSONAS_VERSION: main # a tag such as v0.7.0 pins the plugin
+  # Set ANTHROPIC_API_KEY as a secret pipeline variable; never in this file.
+
+steps:
+  - checkout: self
+
+  - script: |
+      set -euo pipefail
+      npm install -g @anthropic-ai/claude-code
+      npm install --no-save playwright
+      npx playwright install --with-deps chromium webkit
+      git clone --depth 1 --branch "$(PERSONAS_VERSION)" https://github.com/johantor/personas.git "$(Agent.TempDirectory)/personas"
+    displayName: Install Claude Code, Playwright and personas
+
+  - script: |
+      set -euo pipefail
+      claude -p --plugin-dir "$(Agent.TempDirectory)/personas/plugin" \
+        --allowedTools "Agent" "Read" "Glob" "Skill" "Edit(.personas/runs/**)" \
+          "Bash(persona-browser *)" "Bash(personas-check *)" "Bash(mkdir *)" "Bash(date *)" "Bash(ls *)" \
+        "/personas:run $(STAGING_URL)" < /dev/null
+    displayName: Run the personas
+    env:
+      ANTHROPIC_API_KEY: $(ANTHROPIC_API_KEY)
+
+  - publish: .personas/runs
+    artifact: personas-run
+    displayName: Publish the reports and screenshots
+    condition: always()
+
+  - script: |
+      set -euo pipefail
+      run="$(ls -d .personas/runs/*/ | tail -1)"
+      personas-check() { node "$(Agent.TempDirectory)/personas/plugin/lib/check-schema.cjs" "$@"; }
+      personas-check findings "${run}findings.json"
+      az devops configure --defaults organization="$(System.CollectionUri)" project="$(System.TeamProject)"
+
+      # One work item per finding. The fingerprint tag finds an open one from an earlier run,
+      # so the same defect is not filed twice.
+      jq -c '.[]' "${run}findings.json" | while read -r f; do
+        fp="personas-$(jq -r '[.url, .category, .expected] | join("|")' <<<"$f" | sha1sum | cut -c1-12)"
+        open="$(az boards query -o tsv --query '[0].id' --wiql \
+          "SELECT [System.Id] FROM workitems WHERE [System.Tags] CONTAINS '$fp' AND [System.State] NOT IN ('Closed', 'Done', 'Removed')")"
+        [ -n "$open" ] && { echo "already filed: #$open ($fp)"; continue; }
+        severity="$(jq -r .severity <<<"$f")"
+        case "$severity" in blocker | major) type=Bug ;; *) continue ;; esac # file minor and note too by adding a type
+        title="[personas] $severity: $(jq -r '.actual' <<<"$f" | cut -c1-120)"
+        # @html escapes each value: a finding can quote markup such as <h1>.
+        body="$(jq -r '@html "<p><b>Page:</b> \(.url)</p><p><b>Steps:</b> \(.steps | join(" → "))</p><p><b>Expected:</b> \(.expected)</p><p><b>Actual:</b> \(.actual)</p><p><b>Seen by:</b> \(.seenBy | join(", ")); <b>evidence</b> in the personas-run artifact: \(.evidence | join(", "))</p>"' <<<"$f")"
+        az boards work-item create --type "$type" --title "$title" --description "$body" \
+          --fields "System.Tags=personas; $fp" -o tsv --query id
+      done
+    displayName: File new findings as work items
+    env:
+      AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)

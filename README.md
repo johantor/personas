@@ -88,6 +88,13 @@ never opened; the same kind of overflow on the home page, which was not planted,
 The other real defects: the booking link hidden from the "book from the menu" text, Swedish
 navigation that leads to English pages, no skip link, and in run 2 the home page overflow.
 
+## Running in a pipeline
+
+personas runs headless, so a scheduled pipeline can run it against a staging server.
+[`examples/azure-devops/`](examples/azure-devops/) has an example Azure DevOps pipeline that runs
+the personas each night and files new blocker and major findings as work items, without
+duplicates across runs. It is an example to adapt, not a tested part of the plugin.
+
 ## Known gaps
 
 - A redirect from an allowed host to another host sends that one GET before `persona-browser`

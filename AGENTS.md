@@ -26,6 +26,8 @@ applies here.
 - `demo/`: the v1 acceptance demo, never part of the plugin: a museum site with 11 planted bugs
   (`site.cjs`), four personas in `.personas/`, and the answer key in `EXPECTED.md`. The README's
   *Demo* section has the measured run and how to repeat it.
+- `examples/`: setups to copy, never part of the plugin; `azure-devops/` is a nightly pipeline
+  that files findings as work items. Not run in CI.
 - `scripts/`: repo tooling, never part of the plugin's behaviour: `check-changelog.sh` (the
   release gate) and `release-notes.sh` (used by `auto-release.yml`).
 - `docs/`: the site on GitHub Pages. `style.css` is an exact copy of crew's `docs/style.css`;
