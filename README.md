@@ -68,22 +68,25 @@ cd demo && claude --plugin-dir ../plugin
 > /personas:run
 ```
 
-The v1 acceptance run (v0.6.0, 2026-11-27, one run, all four personas in one batch, at most 20
-steps each):
+The v1 acceptance runs, each one `/personas:run` with all four personas in one batch and at
+most 20 steps each:
 
-| Measure | Result |
-|---|---|
-| Planted bugs found | 6 of 11: the dead "Next" button, the unlabelled date field, the missing weekend hours, the 404 menu link, the keyboard-unreachable menu, the English text on the Swedish page |
-| Missed | the empty search results, the low-contrast prices, the image without alt text, the phone overflow, the 4-second page |
-| Other real defects found | 3: the booking link hidden from the "book from the menu" text, Swedish navigation that leads to English pages, no skip link |
-| Wall time | 3 min 4 s |
-| Tokens | 30,151 output, 1,584,470 cache reads, 172,756 cache writes, 112 uncached input |
-| Cost | $1.38: $0.83 for the runner session (Opus), $0.56 for the four visitors and the reporter (Sonnet) |
+| Measure | Run 1 (v0.6.0) | Run 2 (v0.7.0) |
+|---|---|---|
+| Planted bugs found | 6 of 11 | 10 of 11 |
+| Missed | search, contrast, alt text, phone overflow, slow page | phone overflow on `/exhibitions` |
+| Other real defects found | 3 | 4 |
+| Wall time | 3 min 4 s | 2 min 58 s |
+| Output tokens | 30,151 | 38,027 |
+| Cache reads and writes | 1,584,470 and 172,756 | 1,852,948 and 184,471 |
+| Cost | $1.38 ($0.83 Opus runner, $0.56 Sonnet visitors and reporter) | $1.61 ($0.99 and $0.62) |
 
-No persona's goal needed search, so its bug went unseen. The other misses are visual or timing
-defects (contrast, overflow, load time) that the accessibility tree does not show, and the
-missing alt text, which the tree shows but no visitor reported. A persona whose goal needs
-search, or one told to check images and contrast, would catch more.
+Run 1 missed what no persona's goal led to (search) and what the accessibility tree does not
+show. For run 2, `look` added its `checks:` (load time, overflow, alt text, contrast) and the
+desktop persona's goal starts with the site search. Its one miss is a page the phone persona
+never opened; the same kind of overflow on the home page, which was not planted, it did report.
+The other real defects: the booking link hidden from the "book from the menu" text, Swedish
+navigation that leads to English pages, no skip link, and in run 2 the home page overflow.
 
 ## Known gaps
 
